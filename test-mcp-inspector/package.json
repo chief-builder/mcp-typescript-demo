@@ -1,0 +1,34 @@
+{
+  "name": "mcp-inspector-tests",
+  "version": "1.0.0",
+  "description": "Automated testing framework for MCP Inspector functionality",
+  "type": "module",
+  "main": "run-inspector-tests.js",
+  "scripts": {
+    "test": "node run-inspector-tests.js",
+    "test:headless": "HEADLESS=true node run-inspector-tests.js",
+    "test:single": "node run-inspector-tests.js --server",
+    "test:knowledge": "node run-inspector-tests.js --server=knowledge",
+    "test:dev-tools": "node run-inspector-tests.js --server=dev-tools",
+    "test:analytics": "node run-inspector-tests.js --server=analytics",
+    "test:cloud-ops": "node run-inspector-tests.js --server=cloud-ops",
+    "install-browsers": "npx playwright install",
+    "generate-report": "node src/utils/ReportGenerator.js"
+  },
+  "dependencies": {
+    "playwright": "^1.40.0",
+    "playwright-core": "^1.40.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "testing",
+    "automation",
+    "inspector"
+  ],
+  "author": "MCP Demo Team",
+  "license": "MIT"
+}

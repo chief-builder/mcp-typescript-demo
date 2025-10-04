@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP TypeScript Demo - API Explorer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            color: #334155;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #1e293b;
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #64748b;
+            font-size: 1.1rem;
+        }
+
+        .explorer-container {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 24px;
+            height: calc(100vh - 200px);
+        }
+
+        .sidebar {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+        }
+
+        .main-content {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+        }
+
+        .server-section {
+            margin-bottom: 20px;
+        }
+
+        .server-title {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .endpoint-group {
+            margin-bottom: 16px;
+        }
+
+        .endpoint-group-title {
+            font-weight: 500;
+            color: #475569;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .endpoint-item {
+            padding: 8px 12px;
+            margin: 4px 0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .endpoint-item:hover {
+            background: #f1f5f9;
+            border-left-color: #3b82f6;
+        }
+
+        .endpoint-item.active {
+            background: #eff6ff;
+            border-left-color: #2563eb;
+            color: #1d4ed8;
+        }
+
+        .endpoint-method {
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 500;
+            margin-right: 8px;
+        }
+
+        .method-tool {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .method-resource {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .method-prompt {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+
+        .detail-panel {
+            display: none;
+        }
+
+        .detail-panel.active {
+            display: block;
+        }
+
+        .detail-header {
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 16px;
+            margin-bottom: 24px;
+        }
+
+        .detail-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        .detail-description {
+            color: #64748b;
+            font-size: 1rem;
+        }
+
+        .section {
+            margin-bottom: 32px;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 12px;
+        }
+
+        .parameter-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .parameter {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .parameter-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .parameter-name {
+            font-weight: 500;
+            color: #374151;
+            margin-right: 8px;
+        }
+
+        .parameter-type {
+            background: #f3f4f6;
+            color: #6b7280;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-right: 8px;
+        }
+
+        .parameter-required {
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+
+        .parameter-description {
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+
+        .try-it-section {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 4px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .form-textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #2563eb;
+        }
+
+        .response-section {
+            margin-top: 20px;
+        }
+
+        .response-content {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 16px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+
+        .code-block {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 16px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+        }
+
+        .welcome-panel {
+            text-align: center;
+            padding: 60px 20px;
+            color: #64748b;
+        }
+
+        .welcome-panel h2 {
+            font-size: 1.5rem;
+            margin-bottom: 16px;
+            color: #374151;
+        }
+
+        .connection-status {
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            font-weight: 500;
+        }
+
+        .status-disconnected {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .status-connected {
+            background: #f0fdf4;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .connect-form {
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>MCP TypeScript Demo - API Explorer</h1>
+            <p>Interactive tool for exploring and testing MCP server APIs</p>
+        </div>
+
+        <div class="explorer-container">
+            <div class="sidebar">
+                <div class="connect-form">
+                    <div class="form-group">
+                        <label class="form-label">Server URL</label>
+                        <input type="text" id="serverUrl" class="form-input" value="http://localhost:3004" placeholder="http://localhost:3004">
+                    </div>
+                    <button class="btn" onclick="connectToServer()">Connect</button>
+                </div>
+
+                <div id="connectionStatus" class="connection-status status-disconnected">
+                    Disconnected
+                </div>
+
+                <div id="endpointList">
+                    <!-- Will be populated dynamically -->
+                </div>
+            </div>
+
+            <div class="main-content">
+                <div id="welcomePanel" class="welcome-panel">
+                    <h2>Welcome to the MCP API Explorer</h2>
+                    <p>Connect to an MCP server to start exploring its capabilities.</p>
+                    <p>You can test tools, browse resources, and try prompts interactively.</p>
+                </div>
+
+                <div id="detailPanels">
+                    <!-- Detail panels will be populated dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentConnection = null;
+        let serverCapabilities = null;
+
+        async function connectToServer() {
+            const serverUrl = document.getElementById('serverUrl').value;
+            const statusEl = document.getElementById('connectionStatus');
+            
+            try {
+                statusEl.textContent = 'Connecting...';
+                statusEl.className = 'connection-status';
+                
+                // Simulate connection (in real implementation, this would use WebSocket or HTTP)
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Mock server capabilities
+                serverCapabilities = await fetchServerCapabilities(serverUrl);
+                
+                statusEl.textContent = `Connected to ${getServerName(serverUrl)}`;
+                statusEl.className = 'connection-status status-connected';
+                
+                populateEndpointList();
+                document.getElementById('welcomePanel').style.display = 'none';
+                
+            } catch (error) {
+                statusEl.textContent = 'Connection failed';
+                statusEl.className = 'connection-status status-disconnected';
+                console.error('Connection error:', error);
+            }
+        }
+
+        function getServerName(url) {
+            const port = new URL(url).port;
+            const serverMap = {
+                '3001': 'Dev Tools Server',
+                '3002': 'Analytics Server', 
+                '3003': 'Cloud Ops Server',
+                '3004': 'Knowledge Server'
+            };
+            return serverMap[port] || 'MCP Server';
+        }
+
+        async function fetchServerCapabilities(serverUrl) {
+            // Mock data - in real implementation, this would fetch from actual server
+            const mockCapabilities = {
+                'http://localhost:3004': {
+                    name: 'Knowledge Server',
+                    tools: [
+                        {
+                            name: 'search_documents',
+                            title: 'Search Documents',
+                            description: 'Search through the knowledge base using keywords',
+                            parameters: [
+                                { name: 'query', type: 'string', required: true, description: 'Search query for documents' },
+                                { name: 'category', type: 'string', required: false, description: 'Filter by document category' },
+                                { name: 'tags', type: 'array', required: false, description: 'Filter by document tags' },
+                                { 
+                                    name: 'limit', 
+                                    type: 'number', 
+                                    required: false, 
+                                    description: 'Maximum number of results to return',
+                                    min: 1,
+                                    max: 50,
+                                    default: 10
+                                }
+                            ]
+                        },
+                        {
+                            name: 'create_document',
+                            title: 'Create Document',
+                            description: 'Create a new document in the knowledge base',
+                            parameters: [
+                                { name: 'title', type: 'string', required: true, description: 'Document title' },
+                                { name: 'content', type: 'string', required: true, description: 'Document content (Markdown supported)' },
+                                { name: 'category', type: 'string', required: true, description: 'Document category' },
+                                { name: 'tags', type: 'array', required: true, description: 'Document tags' },
+                                { name: 'author', type: 'string', required: false, description: 'Document author' }
+                            ]
+                        }
+                    ],
+                    resources: [
+                        {
+                            name: 'knowledge_base_stats',
+                            title: 'Knowledge Base Statistics',
+                            description: 'Overview statistics of the knowledge base',
+                            uri: 'knowledge://stats/overview'
+                        },
+                        {
+                            name: 'recent_documents',
+                            title: 'Recent Documents',
+                            description: 'Recently added documents',
+                            uri: 'knowledge://documents/recent'
+                        }
+                    ],
+                    prompts: [
+                        {
+                            name: 'research_assistant',
+                            title: 'Research Assistant',
+                            description: 'Help research a topic using the knowledge base',
+                            arguments: [
+                                { name: 'topic', required: true, description: 'Research topic or question' },
+                                { name: 'depth', required: false, description: 'Research depth level' }
+                            ]
+                        }
+                    ]
+                }
+            };
+
+            return mockCapabilities[serverUrl] || mockCapabilities['http://localhost:3004'];
+        }
+
+        function populateEndpointList() {
+            const listEl = document.getElementById('endpointList');
+            listEl.innerHTML = '';
+
+            const serverSection = document.createElement('div');
+            serverSection.className = 'server-section';
+
+            const title = document.createElement('div');
+            title.className = 'server-title';
+            title.textContent = serverCapabilities.name;
+            serverSection.appendChild(title);
+
+            // Tools section
+            if (serverCapabilities.tools?.length > 0) {
+                const toolsGroup = createEndpointGroup('Tools', serverCapabilities.tools, 'tool');
+                serverSection.appendChild(toolsGroup);
+            }
+
+            // Resources section
+            if (serverCapabilities.resources?.length > 0) {
+                const resourcesGroup = createEndpointGroup('Resources', serverCapabilities.resources, 'resource');
+                serverSection.appendChild(resourcesGroup);
+            }
+
+            // Prompts section
+            if (serverCapabilities.prompts?.length > 0) {
+                const promptsGroup = createEndpointGroup('Prompts', serverCapabilities.prompts, 'prompt');
+                serverSection.appendChild(promptsGroup);
+            }
+
+            listEl.appendChild(serverSection);
+        }
+
+        function createEndpointGroup(title, items, type) {
+            const group = document.createElement('div');
+            group.className = 'endpoint-group';
+
+            const groupTitle = document.createElement('div');
+            groupTitle.className = 'endpoint-group-title';
+            groupTitle.textContent = title;
+            group.appendChild(groupTitle);
+
+            items.forEach(item => {
+                const endpointItem = document.createElement('div');
+                endpointItem.className = 'endpoint-item';
+                endpointItem.onclick = () => showDetail(item, type);
+
+                const method = document.createElement('span');
+                method.className = `endpoint-method method-${type}`;
+                method.textContent = type.toUpperCase();
+
+                const name = document.createElement('span');
+                name.textContent = item.title || item.name;
+
+                endpointItem.appendChild(method);
+                endpointItem.appendChild(name);
+                group.appendChild(endpointItem);
+            });
+
+            return group;
+        }
+
+        function showDetail(item, type) {
+            // Remove active class from all items
+            document.querySelectorAll('.endpoint-item').forEach(el => el.classList.remove('active'));
+            event.target.closest('.endpoint-item').classList.add('active');
+
+            // Hide welcome panel
+            document.getElementById('welcomePanel').style.display = 'none';
+
+            // Hide all detail panels
+            document.querySelectorAll('.detail-panel').forEach(el => el.style.display = 'none');
+
+            // Show or create detail panel
+            let panel = document.getElementById(`detail-${item.name}`);
+            if (!panel) {
+                panel = createDetailPanel(item, type);
+                document.getElementById('detailPanels').appendChild(panel);
+            }
+            panel.style.display = 'block';
+        }
+
+        function createDetailPanel(item, type) {
+            const panel = document.createElement('div');
+            panel.id = `detail-${item.name}`;
+            panel.className = 'detail-panel';
+
+            const header = document.createElement('div');
+            header.className = 'detail-header';
+            header.innerHTML = `
+                <div class="detail-title">${item.title || item.name}</div>
+                <div class="detail-description">${item.description}</div>
+            `;
+            panel.appendChild(header);
+
+            if (type === 'tool') {
+                panel.appendChild(createToolDetail(item));
+            } else if (type === 'resource') {
+                panel.appendChild(createResourceDetail(item));
+            } else if (type === 'prompt') {
+                panel.appendChild(createPromptDetail(item));
+            }
+
+            return panel;
+        }
+
+        function createToolDetail(tool) {
+            const container = document.createElement('div');
+
+            // Parameters section
+            if (tool.parameters?.length > 0) {
+                const section = document.createElement('div');
+                section.className = 'section';
+                section.innerHTML = '<div class="section-title">Parameters</div>';
+
+                const paramGrid = document.createElement('div');
+                paramGrid.className = 'parameter-grid';
+
+                tool.parameters.forEach(param => {
+                    const paramEl = document.createElement('div');
+                    paramEl.className = 'parameter';
+                    paramEl.innerHTML = `
+                        <div class="parameter-header">
+                            <span class="parameter-name">${param.name}</span>
+                            <span class="parameter-type">${param.type}</span>
+                            ${param.required ? '<span class="parameter-required">required</span>' : ''}
+                        </div>
+                        <div class="parameter-description">${param.description}</div>
+                    `;
+                    paramGrid.appendChild(paramEl);
+                });
+
+                section.appendChild(paramGrid);
+                container.appendChild(section);
+            }
+
+            // Try it section
+            const tryItSection = document.createElement('div');
+            tryItSection.className = 'try-it-section';
+            tryItSection.innerHTML = '<div class="section-title">Try it out</div>';
+
+            const form = document.createElement('form');
+            form.onsubmit = (e) => {
+                e.preventDefault();
+                executeTool(tool, form);
+            };
+
+            if (tool.parameters?.length > 0) {
+                tool.parameters.forEach(param => {
+                    const formGroup = document.createElement('div');
+                    formGroup.className = 'form-group';
+
+                    const label = document.createElement('label');
+                    label.className = 'form-label';
+                    label.textContent = `${param.name} ${param.required ? '*' : ''}`;
+
+                    let input;
+                    if (param.type === 'array') {
+                        input = document.createElement('textarea');
+                        input.className = 'form-input form-textarea';
+                        input.placeholder = 'Enter values separated by commas';
+                    } else if (param.name === 'content') {
+                        input = document.createElement('textarea');
+                        input.className = 'form-input form-textarea';
+                    } else {
+                        input = document.createElement('input');
+                        input.className = 'form-input';
+                        input.type = param.type === 'number' ? 'number' : 'text';
+                        
+                        // Add placeholder with default value
+                        if (param.default) {
+                            input.placeholder = `Default: ${param.default}`;
+                        }
+                        
+                        // Add validation attributes
+                        if (param.min !== undefined) input.min = param.min;
+                        if (param.max !== undefined) input.max = param.max;
+                    }
+                    
+                    input.name = param.name;
+                    input.required = param.required;
+
+                    formGroup.appendChild(label);
+                    formGroup.appendChild(input);
+                    form.appendChild(formGroup);
+                });
+            }
+
+            const submitBtn = document.createElement('button');
+            submitBtn.type = 'submit';
+            submitBtn.className = 'btn';
+            submitBtn.textContent = 'Execute';
+            form.appendChild(submitBtn);
+
+            tryItSection.appendChild(form);
+
+            const responseSection = document.createElement('div');
+            responseSection.className = 'response-section';
+            responseSection.style.display = 'none';
+            responseSection.innerHTML = `
+                <div class="section-title">Response</div>
+                <div class="response-content"></div>
+            `;
+            tryItSection.appendChild(responseSection);
+
+            container.appendChild(tryItSection);
+            return container;
+        }
+
+        function createResourceDetail(resource) {
+            const container = document.createElement('div');
+
+            const section = document.createElement('div');
+            section.className = 'section';
+            section.innerHTML = `
+                <div class="section-title">Resource Information</div>
+                <div class="parameter">
+                    <div class="parameter-header">
+                        <span class="parameter-name">URI</span>
+                        <span class="parameter-type">string</span>
+                    </div>
+                    <div class="parameter-description">${resource.uri}</div>
+                </div>
+            `;
+
+            const tryItSection = document.createElement('div');
+            tryItSection.className = 'try-it-section';
+            tryItSection.innerHTML = `
+                <div class="section-title">Try it out</div>
+                <button class="btn" onclick="fetchResource('${resource.uri}', '${resource.name}')">Fetch Resource</button>
+                <div class="response-section" style="display: none;">
+                    <div class="section-title">Response</div>
+                    <div class="response-content"></div>
+                </div>
+            `;
+
+            container.appendChild(section);
+            container.appendChild(tryItSection);
+            return container;
+        }
+
+        function createPromptDetail(prompt) {
+            const container = document.createElement('div');
+
+            if (prompt.arguments?.length > 0) {
+                const section = document.createElement('div');
+                section.className = 'section';
+                section.innerHTML = '<div class="section-title">Arguments</div>';
+
+                const paramGrid = document.createElement('div');
+                paramGrid.className = 'parameter-grid';
+
+                prompt.arguments.forEach(arg => {
+                    const paramEl = document.createElement('div');
+                    paramEl.className = 'parameter';
+                    paramEl.innerHTML = `
+                        <div class="parameter-header">
+                            <span class="parameter-name">${arg.name}</span>
+                            <span class="parameter-type">string</span>
+                            ${arg.required ? '<span class="parameter-required">required</span>' : ''}
+                        </div>
+                        <div class="parameter-description">${arg.description}</div>
+                    `;
+                    paramGrid.appendChild(paramEl);
+                });
+
+                section.appendChild(paramGrid);
+                container.appendChild(section);
+            }
+
+            const tryItSection = document.createElement('div');
+            tryItSection.className = 'try-it-section';
+            tryItSection.innerHTML = '<div class="section-title">Try it out</div>';
+
+            const form = document.createElement('form');
+            form.onsubmit = (e) => {
+                e.preventDefault();
+                executePrompt(prompt, form);
+            };
+
+            if (prompt.arguments?.length > 0) {
+                prompt.arguments.forEach(arg => {
+                    const formGroup = document.createElement('div');
+                    formGroup.className = 'form-group';
+
+                    const label = document.createElement('label');
+                    label.className = 'form-label';
+                    label.textContent = `${arg.name} ${arg.required ? '*' : ''}`;
+
+                    const input = document.createElement('input');
+                    input.className = 'form-input';
+                    input.name = arg.name;
+                    input.required = arg.required;
+
+                    formGroup.appendChild(label);
+                    formGroup.appendChild(input);
+                    form.appendChild(formGroup);
+                });
+            }
+
+            const submitBtn = document.createElement('button');
+            submitBtn.type = 'submit';
+            submitBtn.className = 'btn';
+            submitBtn.textContent = 'Get Prompt';
+            form.appendChild(submitBtn);
+
+            tryItSection.appendChild(form);
+
+            const responseSection = document.createElement('div');
+            responseSection.className = 'response-section';
+            responseSection.style.display = 'none';
+            responseSection.innerHTML = `
+                <div class="section-title">Response</div>
+                <div class="response-content"></div>
+            `;
+            tryItSection.appendChild(responseSection);
+
+            container.appendChild(tryItSection);
+            return container;
+        }
+
+        async function executeTool(tool, form) {
+            const formData = new FormData(form);
+            const params = {};
+
+            for (let [key, value] of formData.entries()) {
+                const param = tool.parameters.find(p => p.name === key);
+                if (param?.type === 'array') {
+                    params[key] = value.split(',').map(v => v.trim()).filter(v => v);
+                } else if (param?.type === 'number') {
+                    params[key] = parseFloat(value);
+                } else {
+                    params[key] = value;
+                }
+            }
+
+            const responseSection = form.parentElement.querySelector('.response-section');
+            const responseContent = responseSection.querySelector('.response-content');
+
+            try {
+                responseContent.textContent = 'Executing...';
+                responseSection.style.display = 'block';
+
+                // Mock response
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                const mockResponse = {
+                    content: [{
+                        type: 'text',
+                        text: `Tool "${tool.name}" executed successfully with parameters: ${JSON.stringify(params, null, 2)}`
+                    }]
+                };
+
+                responseContent.textContent = JSON.stringify(mockResponse, null, 2);
+            } catch (error) {
+                responseContent.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        async function fetchResource(uri, name) {
+            const responseSection = event.target.parentElement.querySelector('.response-section');
+            const responseContent = responseSection.querySelector('.response-content');
+
+            try {
+                responseContent.textContent = 'Fetching...';
+                responseSection.style.display = 'block';
+
+                // Mock response
+                await new Promise(resolve => setTimeout(resolve, 800));
+                
+                const mockResponse = {
+                    contents: [{
+                        uri: uri,
+                        mimeType: 'text/plain',
+                        text: `Mock data for resource: ${name}\nURI: ${uri}\nTimestamp: ${new Date().toISOString()}`
+                    }]
+                };
+
+                responseContent.textContent = JSON.stringify(mockResponse, null, 2);
+            } catch (error) {
+                responseContent.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        async function executePrompt(prompt, form) {
+            const formData = new FormData(form);
+            const args = {};
+
+            for (let [key, value] of formData.entries()) {
+                args[key] = value;
+            }
+
+            const responseSection = form.parentElement.querySelector('.response-section');
+            const responseContent = responseSection.querySelector('.response-content');
+
+            try {
+                responseContent.textContent = 'Generating...';
+                responseSection.style.display = 'block';
+
+                // Mock response
+                await new Promise(resolve => setTimeout(resolve, 1200));
+                
+                const mockResponse = {
+                    description: `Generated prompt for "${prompt.name}"`,
+                    messages: [{
+                        role: 'user',
+                        content: {
+                            type: 'text',
+                            text: `This is a mock prompt response for ${prompt.name} with arguments: ${JSON.stringify(args, null, 2)}`
+                        }
+                    }]
+                };
+
+                responseContent.textContent = JSON.stringify(mockResponse, null, 2);
+            } catch (error) {
+                responseContent.textContent = `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

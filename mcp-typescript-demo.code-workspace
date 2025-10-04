@@ -1,0 +1,350 @@
+{
+  "folders": [
+    {
+      "name": "🎯 Root",
+      "path": "."
+    },
+    {
+      "name": "📦 Core",
+      "path": "./packages/core"
+    },
+    {
+      "name": "🔧 dev-tools-server",
+      "path": "./packages/servers/dev-tools"
+    },
+    {
+      "name": "📊 analytics-server",
+      "path": "./packages/servers/analytics"
+    },
+    {
+      "name": "☁️ cloud-ops-server",
+      "path": "./packages/servers/cloud-ops"
+    },
+    {
+      "name": "📚 knowledge-server",
+      "path": "./packages/servers/knowledge"
+    },
+    {
+      "name": "💬 chat-server",
+      "path": "./packages/servers/chat-server"
+    },
+    {
+      "name": "🖥️ desktop-client",
+      "path": "./packages/clients/desktop"
+    },
+    {
+      "name": "⌨️ cli-client",
+      "path": "./packages/clients/cli"
+    },
+    {
+      "name": "🌐 web-client",
+      "path": "./packages/clients/web"
+    },
+    {
+      "name": "🤖 claude-chat",
+      "path": "./packages/clients/claude-chat"
+    },
+    {
+      "name": "🧪 test-utils",
+      "path": "./packages/test-utils"
+    },
+    {
+      "name": "📖 docs",
+      "path": "./docs"
+    }
+  ],
+  "settings": {
+    "typescript.preferences.includePackageJsonAutoImports": "on",
+    "typescript.enablePromptUseWorkspaceTsdk": true,
+    "typescript.workspaceSymbols.scope": "allOpenProjects",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    },
+    "eslint.workingDirectories": [
+      "packages/core",
+      "packages/servers/dev-tools",
+      "packages/servers/analytics", 
+      "packages/servers/cloud-ops",
+      "packages/servers/knowledge",
+      "packages/servers/chat-server",
+      "packages/clients/desktop",
+      "packages/clients/cli",
+      "packages/clients/web",
+      "packages/clients/claude-chat",
+      "packages/test-utils"
+    ],
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/dist": true,
+      "**/.turbo": true,
+      "**/coverage": true
+    },
+    "files.exclude": {
+      "**/node_modules": true,
+      "**/dist": true,
+      "**/.turbo": true
+    },
+    "files.associations": {
+      "*.md": "markdown"
+    },
+    "markdown.preview.typographer": true,
+    "emmet.includeLanguages": {
+      "typescript": "javascriptreact",
+      "javascript": "javascriptreact"
+    }
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "🔨 Build All",
+        "type": "shell",
+        "command": "pnpm build",
+        "group": "build",
+        "presentation": {
+          "reveal": "always",
+          "panel": "new"
+        },
+        "problemMatcher": ["$tsc"]
+      },
+      {
+        "label": "🧪 Test All",
+        "type": "shell", 
+        "command": "pnpm test",
+        "group": "test",
+        "presentation": {
+          "reveal": "always",
+          "panel": "new"
+        }
+      },
+      {
+        "label": "🔍 Lint All",
+        "type": "shell",
+        "command": "pnpm lint",
+        "group": "build",
+        "presentation": {
+          "reveal": "always",
+          "panel": "new"
+        }
+      },
+      {
+        "label": "🔧 Type Check",
+        "type": "shell",
+        "command": "pnpm typecheck",
+        "group": "build",
+        "presentation": {
+          "reveal": "always",
+          "panel": "new"
+        },
+        "problemMatcher": ["$tsc"]
+      },
+      {
+        "label": "🚀 Start Demo",
+        "type": "shell",
+        "command": "./scripts/start-demo.sh",
+        "group": "build",
+        "presentation": {
+          "reveal": "always",
+          "panel": "new"
+        }
+      },
+      {
+        "label": "🔧 Start dev-tools-server",
+        "type": "shell",
+        "command": "pnpm start",
+        "options": {
+          "cwd": "packages/servers/dev-tools"
+        },
+        "group": "build",
+        "presentation": {
+          "reveal": "always",
+          "panel": "new"
+        }
+      },
+      {
+        "label": "📊 Start analytics-server",
+        "type": "shell",
+        "command": "pnpm start",
+        "options": {
+          "cwd": "packages/servers/analytics"
+        },
+        "group": "build",
+        "presentation": {
+          "reveal": "always",
+          "panel": "new"
+        }
+      },
+      {
+        "label": "☁️ Start cloud-ops-server",
+        "type": "shell",
+        "command": "pnpm start",
+        "options": {
+          "cwd": "packages/servers/cloud-ops"
+        },
+        "group": "build",
+        "presentation": {
+          "reveal": "always",
+          "panel": "new"
+        }
+      },
+      {
+        "label": "📚 Start knowledge-server",
+        "type": "shell",
+        "command": "pnpm start",
+        "options": {
+          "cwd": "packages/servers/knowledge"
+        },
+        "group": "build",
+        "presentation": {
+          "reveal": "always",
+          "panel": "new"
+        }
+      },
+      {
+        "label": "💬 Start chat-server",
+        "type": "shell",
+        "command": "pnpm dev",
+        "options": {
+          "cwd": "packages/servers/chat-server"
+        },
+        "group": "build",
+        "presentation": {
+          "reveal": "always",
+          "panel": "new"
+        }
+      },
+      {
+        "label": "⌨️ Start CLI client",
+        "type": "shell",
+        "command": "pnpm start",
+        "options": {
+          "cwd": "packages/clients/cli"
+        },
+        "group": "build",
+        "presentation": {
+          "reveal": "always",
+          "panel": "new"
+        }
+      },
+      {
+        "label": "🌐 Start web client",
+        "type": "shell",
+        "command": "pnpm dev",
+        "options": {
+          "cwd": "packages/clients/web"
+        },
+        "group": "build",
+        "presentation": {
+          "reveal": "always",
+          "panel": "new"
+        }
+      },
+      {
+        "label": "🤖 Start claude-chat",
+        "type": "shell",
+        "command": "pnpm dev",
+        "options": {
+          "cwd": "packages/clients/claude-chat"
+        },
+        "group": "build",
+        "presentation": {
+          "reveal": "always",
+          "panel": "new"
+        }
+      }
+    ]
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "🔧 Debug dev-tools-server",
+        "type": "node",
+        "request": "launch",
+        "program": "${workspaceFolder}/packages/servers/dev-tools/dist/index.js",
+        "outFiles": ["${workspaceFolder}/packages/servers/dev-tools/dist/**/*.js"],
+        "console": "integratedTerminal",
+        "skipFiles": ["<node_internals>/**"],
+        "env": {
+          "NODE_ENV": "development"
+        }
+      },
+      {
+        "name": "📊 Debug analytics-server",
+        "type": "node",
+        "request": "launch",
+        "program": "${workspaceFolder}/packages/servers/analytics/dist/index.js",
+        "outFiles": ["${workspaceFolder}/packages/servers/analytics/dist/**/*.js"],
+        "console": "integratedTerminal",
+        "skipFiles": ["<node_internals>/**"],
+        "env": {
+          "NODE_ENV": "development"
+        }
+      },
+      {
+        "name": "☁️ Debug cloud-ops-server",
+        "type": "node",
+        "request": "launch",
+        "program": "${workspaceFolder}/packages/servers/cloud-ops/dist/index.js",
+        "outFiles": ["${workspaceFolder}/packages/servers/cloud-ops/dist/**/*.js"],
+        "console": "integratedTerminal",
+        "skipFiles": ["<node_internals>/**"],
+        "env": {
+          "NODE_ENV": "development"
+        }
+      },
+      {
+        "name": "📚 Debug knowledge-server",
+        "type": "node",
+        "request": "launch",
+        "program": "${workspaceFolder}/packages/servers/knowledge/dist/index.js",
+        "outFiles": ["${workspaceFolder}/packages/servers/knowledge/dist/**/*.js"],
+        "console": "integratedTerminal",
+        "skipFiles": ["<node_internals>/**"],
+        "env": {
+          "NODE_ENV": "development"
+        }
+      },
+      {
+        "name": "💬 Debug chat-server",
+        "type": "node",
+        "request": "launch",
+        "program": "${workspaceFolder}/packages/servers/chat-server/dist/index.js",
+        "outFiles": ["${workspaceFolder}/packages/servers/chat-server/dist/**/*.js"],
+        "console": "integratedTerminal",
+        "skipFiles": ["<node_internals>/**"],
+        "env": {
+          "NODE_ENV": "development"
+        }
+      },
+      {
+        "name": "⌨️ Debug CLI client",
+        "type": "node",
+        "request": "launch",
+        "program": "${workspaceFolder}/packages/clients/cli/dist/index.js",
+        "outFiles": ["${workspaceFolder}/packages/clients/cli/dist/**/*.js"],
+        "console": "integratedTerminal",
+        "skipFiles": ["<node_internals>/**"],
+        "env": {
+          "NODE_ENV": "development"
+        }
+      }
+    ]
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-vscode.vscode-typescript-next",
+      "esbenp.prettier-vscode",
+      "dbaeumer.vscode-eslint",
+      "bradlc.vscode-tailwindcss",
+      "ms-vscode.vscode-json",
+      "yzhang.markdown-all-in-one",
+      "shd101wyy.markdown-preview-enhanced",
+      "ms-vscode.test-adapter-converter",
+      "vitest.explorer",
+      "streetsidesoftware.code-spell-checker",
+      "ms-vscode.vscode-github-issue-notebooks"
+    ]
+  }
+}

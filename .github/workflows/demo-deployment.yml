@@ -1,0 +1,85 @@
+name: Demo Deployment
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy-demo:
+    name: Deploy Demo Environment
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 8
+
+    - name: Use Node.js 20.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+        cache: 'pnpm'
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Build all packages
+      run: pnpm build
+
+    - name: Build web client
+      run: pnpm --filter @mcp-demo/web-client build
+
+    - name: Build claude chat client
+      run: pnpm --filter @mcp-demo/claude-chat build
+
+    - name: Create deployment package
+      run: |
+        mkdir -p deployment
+        
+        # Copy built client applications
+        cp -r packages/clients/web/dist deployment/web-client
+        cp -r packages/clients/claude-chat/dist deployment/claude-chat
+        
+        # Copy server builds
+        mkdir -p deployment/servers
+        cp -r packages/servers/*/dist deployment/servers/
+        cp -r packages/servers/*/package.json deployment/servers/
+        
+        # Copy documentation
+        cp README.md deployment/
+        cp CONTRIBUTING.md deployment/
+        cp -r docs deployment/ || true
+        
+        # Create demo scripts
+        cat > deployment/start-demo.sh << 'EOF'
+        #!/bin/bash
+        echo "🚀 Starting MCP TypeScript Demo..."
+        
+        echo "Starting MCP servers..."
+        cd servers
+        
+        echo "✅ Demo environment ready!"
+        echo "📖 See README.md for usage instructions"
+        EOF
+        
+        chmod +x deployment/start-demo.sh
+
+    - name: Archive deployment
+      uses: actions/upload-artifact@v4
+      with:
+        name: mcp-demo-deployment
+        path: deployment/
+        retention-days: 30
+
+    - name: Deploy to GitHub Pages (if enabled)
+      if: github.repository_owner == 'your-org' # Update this condition
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./deployment
+        cname: mcp-demo.example.com # Update this domain

@@ -1,0 +1,29 @@
+{
+  "name": "@mcp-demo/cli-client",
+  "version": "1.0.0",
+  "description": "Command-line MCP client for interacting with MCP servers",
+  "main": "dist/index.js",
+  "bin": {
+    "mcp-cli": "dist/index.js"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.18.1",
+    "@mcp-demo/core": "workspace:*",
+    "commander": "^12.1.0",
+    "inquirer": "^10.2.2",
+    "chalk": "^5.3.0",
+    "ora": "^8.1.0",
+    "table": "^6.8.2"
+  },
+  "devDependencies": {
+    "@types/inquirer": "^9.0.7",
+    "tsx": "^4.16.5",
+    "typescript": "^5.5.4"
+  }
+}

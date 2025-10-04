@@ -1,0 +1,229 @@
+{
+  "servers": {
+    "knowledge": {
+      "name": "Knowledge Server",
+      "path": "packages/servers/knowledge/dist/index.js",
+      "expectedTools": 7,
+      "expectedResources": 4,
+      "expectedPrompts": 3,
+      "capabilities": ["tools", "resources", "prompts"],
+      "testCases": {
+        "tools": [
+          {
+            "name": "search_documents",
+            "args": {
+              "query": "MCP protocol",
+              "limit": 3
+            },
+            "expectedResponse": "success",
+            "validateContent": true
+          },
+          {
+            "name": "interactive_knowledge_curator",
+            "args": {
+              "mode": "analyze"
+            },
+            "expectedResponse": "success",
+            "validateContent": true
+          },
+          {
+            "name": "bulk_knowledge_processing",
+            "args": {
+              "operation": "analyze",
+              "targetScope": "all",
+              "batchSize": 3
+            },
+            "expectedResponse": "success",
+            "hasProgressNotifications": true
+          }
+        ],
+        "resources": [
+          "knowledge_base_stats",
+          "recent_documents", 
+          "document_collections",
+          "search_indices"
+        ],
+        "prompts": [
+          {
+            "name": "research_assistant",
+            "args": {
+              "topic": "MCP",
+              "depth": "detailed",
+              "focusAreas": "testing, automation"
+            }
+          },
+          {
+            "name": "concept_explanation",
+            "args": {
+              "topic": "Model Context Protocol",
+              "depth": "comprehensive",
+              "focusAreas": "architecture, implementation"
+            }
+          },
+          {
+            "name": "learning_path", 
+            "args": {
+              "topic": "MCP development",
+              "depth": "comprehensive",
+              "focusAreas": "server development, client integration"
+            }
+          }
+        ]
+      }
+    },
+    "dev-tools": {
+      "name": "Development Tools Server",
+      "path": "packages/servers/dev-tools/dist/index.js",
+      "expectedTools": 6,
+      "expectedResources": 4,
+      "expectedPrompts": 3,
+      "capabilities": ["tools", "resources", "prompts", "progress"],
+      "testCases": {
+        "tools": [
+          {
+            "name": "format_code",
+            "args": {
+              "code": "function test(){return true}",
+              "language": "javascript"
+            },
+            "expectedResponse": "success"
+          },
+          {
+            "name": "scan_project",
+            "args": {
+              "directory": ".",
+              "pattern": "**/*.{ts,js}",
+              "maxFiles": 10,
+              "scanType": "quick"
+            },
+            "expectedResponse": "success",
+            "hasProgressNotifications": true
+          }
+        ],
+        "resources": [
+          "project_structure",
+          "recent_changes",
+          "test_coverage",
+          "development_metrics"
+        ],
+        "prompts": [
+          {
+            "name": "code_review",
+            "args": {
+              "filePath": "src/index.ts",
+              "reviewType": "security"
+            }
+          }
+        ]
+      }
+    },
+    "analytics": {
+      "name": "Analytics Server", 
+      "path": "packages/servers/analytics/dist/index.js",
+      "expectedTools": 6,
+      "expectedResources": 3,
+      "expectedPrompts": 3,
+      "capabilities": ["tools", "resources", "prompts", "progress"],
+      "testCases": {
+        "tools": [
+          {
+            "name": "calculate_statistics",
+            "args": {
+              "data": [1, 2, 3, 4, 5],
+              "metrics": ["mean", "median"]
+            },
+            "expectedResponse": "success"
+          },
+          {
+            "name": "process_large_dataset",
+            "args": {
+              "operation": "analyze",
+              "recordCount": 100,
+              "batchSize": 25
+            },
+            "expectedResponse": "success",
+            "hasProgressNotifications": true
+          }
+        ],
+        "resources": [
+          "analytics_dashboard",
+          "performance_metrics", 
+          "usage_statistics"
+        ],
+        "prompts": [
+          {
+            "name": "data_analysis",
+            "args": {
+              "dataType": "user_behavior",
+              "analysisGoal": "optimization"
+            }
+          }
+        ]
+      }
+    },
+    "cloud-ops": {
+      "name": "Cloud Operations Server",
+      "path": "packages/servers/cloud-ops/dist/index.js", 
+      "expectedTools": 7,
+      "expectedResources": 3,
+      "expectedPrompts": 3,
+      "capabilities": ["tools", "resources", "prompts", "progress"],
+      "testCases": {
+        "tools": [
+          {
+            "name": "check_service_health",
+            "args": {
+              "service": "api-gateway",
+              "environment": "production"
+            },
+            "expectedResponse": "success"
+          },
+          {
+            "name": "deploy_multi_service",
+            "args": {
+              "services": ["api", "database"],
+              "environment": "staging",
+              "strategy": "rolling"
+            },
+            "expectedResponse": "success",
+            "hasProgressNotifications": true
+          }
+        ],
+        "resources": [
+          "infrastructure_status",
+          "deployment_history",
+          "monitoring_alerts"
+        ],
+        "prompts": [
+          {
+            "name": "infrastructure_planning",
+            "args": {
+              "requirements": "high-availability",
+              "budget": "medium"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "testingConfig": {
+    "timeouts": {
+      "connection": 10000,
+      "toolExecution": 30000,
+      "elicitation": 300000,
+      "progressNotification": 60000
+    },
+    "screenshots": {
+      "enabled": true,
+      "onFailure": true,
+      "onSuccess": false,
+      "directory": "screenshots"
+    },
+    "reporting": {
+      "format": ["json", "html"],
+      "directory": "reports",
+      "includeScreenshots": true,
+      "includeTimings": true
+    }
+  }
+}

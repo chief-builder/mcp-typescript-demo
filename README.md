@@ -303,7 +303,6 @@ The project implements comprehensive error handling with standard JSON-RPC error
 ### Project Documentation
 - [Architecture Diagrams](./ARCHITECTURE_DIAGRAMS.md) - Visual system documentation
 - [MCP Implementation Analysis](./MCP_IMPLEMENTATION_ANALYSIS.md) - Deep dive into the implementation
-- [Project Next Steps](./MCP_PROJECT_NEXT_STEPS.md) - Enhancement roadmap
 
 ### Server Documentation
 - [Development Tools Server](./packages/servers/dev-tools/README.md)

@@ -16,7 +16,8 @@ const logger = new Logger('knowledge-server');
 
 // Command line argument parsing
 const args = process.argv.slice(2);
-const transportArg = args.find(arg => arg.startsWith('--transport='))?.split('=')[1] || 'stdio';
+const hasHttpFlag = args.includes('--http');
+const transportArg = args.find(arg => arg.startsWith('--transport='))?.split('=')[1] || (hasHttpFlag ? 'http' : 'stdio');
 const portArg = args.find(arg => arg.startsWith('--port='))?.split('=')[1];
 const port = portArg ? parseInt(portArg, 10) : 3004;
 

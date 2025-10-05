@@ -1,0 +1,135 @@
+pnpm start
+
+> @mcp-demo/cli-client@1.0.0 start /Users/chiefbuilder/Documents/Projects/MCP_Advanced_Course/mcp-typescript-demo/packages/clients/cli
+> node dist/index.js
+
+MCP CLI - Interactive Mode
+Type "help" for available commands or "exit" to quit.\n
+? [Not Connected] What would you like to do? Connect to Server
+? Select a server to connect to: Development Tools - Code formatting, file management, and development utilities
+⠙ Connecting to Development Tools...{"timestamp":"2025-10-05T12:44:45.633Z","level":"info","logger":"dev-tools-server","message":"Starting MCP Development Tools Server (stdio mode)"}
+{"timestamp":"2025-10-05T12:44:45.635Z","level":"info","logger":"dev-tools-server","message":"Development Tools Server connected and ready (stdio)"}
+✔ Connected to Development Tools
+
+? [Development Tools] What would you like to do? List Tools
+\nAvailable Tools:
+╔═════════════════════════╤═══════════════════════════════════════════════════════════════════════════════╗
+║ Name                    │ Description                                                                   ║
+╟─────────────────────────┼───────────────────────────────────────────────────────────────────────────────╢
+║ format_code             │ Format code using Prettier with language-specific support                     ║
+╟─────────────────────────┼───────────────────────────────────────────────────────────────────────────────╢
+║ list_project_files      │ List source code files in the current project with filtering options          ║
+╟─────────────────────────┼───────────────────────────────────────────────────────────────────────────────╢
+║ read_file               │ Read the contents of a specific file with syntax highlighting info            ║
+╟─────────────────────────┼───────────────────────────────────────────────────────────────────────────────╢
+║ interactive_code_review │ Perform a customized code review with user-specified criteria via elicitation ║
+╟─────────────────────────┼───────────────────────────────────────────────────────────────────────────────╢
+║ generate_documentation  │ Generate documentation for code using AI assistance via sampling              ║
+╟─────────────────────────┼───────────────────────────────────────────────────────────────────────────────╢
+║ scan_project            │ Scan project files with progress reporting using MCP progress notifications   ║
+╚═════════════════════════╧═══════════════════════════════════════════════════════════════════════════════╝
+
+
+? [Development Tools] What would you like to do? Call Tool
+? Select a tool to call: format_code - Format code using Prettier with language-specific support
+? Enter tool arguments (JSON format, or press Enter for empty): {"code": "function test(){console.log('hello')}", "language": "javascript"}
+⠋ Calling tool: format_code...{"timestamp":"2025-10-05T12:45:22.712Z","level":"info","logger":"dev-tools-server","message":"Formatting code","data":{"language":"javascript"}}
+\nTool Result: format_code
+# Code Formatting Result
+
+**Language**: javascript
+**Status**: Successfully formatted
+
+## Formatted Code
+```javascript
+function test() {
+  console.log('hello');
+}
+
+```
+
+? [Development Tools] What would you like to do? List Resources
+\nAvailable Resources:
+╔════════════════╤═════════════════════════════════╤════════════════════════════════════════════════════════════════════════════════╗
+║ Name           │ URI                             │ Description                                                                    ║
+╟────────────────┼─────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────╢
+║ project_config │ devtools://config/project       │ Access to project configuration files and settings                             ║
+╟────────────────┼─────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────╢
+║ test_reports   │ devtools://reports/testing      │ Recent test execution reports and coverage data                                ║
+╟────────────────┼─────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────╢
+║ build_configs  │ devtools://config/build         │ Build system configurations and optimization settings                          ║
+╟────────────────┼─────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────╢
+║ code_metrics   │ devtools://metrics/code-quality │ Code quality metrics including complexity, maintainability, and technical debt ║
+╚════════════════╧═════════════════════════════════╧════════════════════════════════════════════════════════════════════════════════╝
+
+
+? [Development Tools] What would you like to do? Read Resource
+? Select a resource to read: project_config (devtools://config/project)
+⠋ Reading resource: devtools://config/project...{"timestamp":"2025-10-05T12:45:39.609Z","level":"info","logger":"dev-tools-server","message":"Providing project configuration"}
+\nResource: devtools://config/project
+\n==================================================
+# Project Configuration Overview
+
+## Detected Packages
+
+### @mcp-demo/cli-client
+- **File**: `package.json`
+- **Version**: 1.0.0
+- **Description**: Command-line MCP client for interacting with MCP servers
+
+
+*Found 1 configuration files*
+
+? [Development Tools] What would you like to do? List Prompts
+\nAvailable Prompts:
+╔═══════════════╤════════════════════════════════════════════════════════════════════════════╗
+║ Name          │ Description                                                                ║
+╟───────────────┼────────────────────────────────────────────────────────────────────────────╢
+║ code_review   │ Perform a comprehensive code review with suggestions for improvement       ║
+╟───────────────┼────────────────────────────────────────────────────────────────────────────╢
+║ debug_session │ Get systematic debugging guidance for troubleshooting code issues          ║
+╟───────────────┼────────────────────────────────────────────────────────────────────────────╢
+║ test_strategy │ Design comprehensive testing strategies for code features and applications ║
+╚═══════════════╧════════════════════════════════════════════════════════════════════════════╝
+
+
+? [Development Tools] What would you like to do? Get Prompt
+? Select a prompt to get: code_review - Perform a comprehensive code review with suggestions for improvement
+? Enter prompt arguments (JSON format, or press Enter for empty): {"filePath": "test.js"}
+⠋ Getting prompt: code_review...{"timestamp":"2025-10-05T12:46:20.184Z","level":"info","logger":"dev-tools-server","message":"Generating code review prompt","data":{"filePath":"test.js"}}
+\nPrompt: code_review
+\n==================================================
+Role: user
+Please perform a comprehensive code review of the file: test.js
+
+I'm looking for feedback on all aspects including security, performance, maintainability, and style.
+
+Please follow this code review methodology:
+
+1. **File Analysis**
+   - Read the file using the read_file tool
+   - Analyze the code structure and patterns
+   - Identify the programming language and framework
+
+2. **Review Focus Areas** (for comprehensive review)
+   
+   
+   
+   
+
+3. **Provide Actionable Feedback**
+   - Highlight specific lines or sections of concern
+   - Suggest concrete improvements with examples
+   - Prioritize issues by severity (Critical, High, Medium, Low)
+   - Offer alternative approaches where applicable
+
+4. **Summary and Recommendations**
+   - Summarize the main findings
+   - Provide an overall assessment
+   - Suggest next steps for improvement
+
+Start by reading the file and then provide your detailed code review.
+
+? [Development Tools] What would you like to do? Exit
+Goodbye!
+{"timestamp":"2025-10-05T12:46:30.737Z","level":"info","logger":"dev-tools-server","message":"Shutting down server..."}

@@ -1,0 +1,233 @@
+#!/usr/bin/expect -f
+# MCP CLI Client Automated Testing Script using Expect
+# This script automates interactive testing of the CLI client
+
+set timeout 30
+log_user 0
+
+# Color codes
+set GREEN "\033\[0;32m"
+set RED "\033\[0;31m"
+set BLUE "\033\[0;34m"
+set YELLOW "\033\[1;33m"
+set NC "\033\[0m"
+
+puts "${BLUE}========================================${NC}"
+puts "${BLUE}MCP CLI Client Automated Test${NC}"
+puts "${BLUE}========================================${NC}"
+puts ""
+
+# Start the CLI client
+puts "${YELLOW}Starting CLI client...${NC}"
+spawn node packages/clients/cli/dist/index.js
+
+# Test 1: Wait for initial prompt
+expect {
+    timeout {
+        puts "${RED}✗ Failed to start CLI${NC}"
+        exit 1
+    }
+    "What would you like to do?" {
+        puts "${GREEN}✓ CLI started successfully${NC}"
+    }
+}
+
+# Test 2: Navigate to Connect option
+puts "\n${YELLOW}Test 1: Connecting to server${NC}"
+send "\033\[B"  ;# Down arrow
+expect ">"
+send "\r"  ;# Enter
+expect {
+    timeout {
+        puts "${RED}✗ Failed to show server selection${NC}"
+        exit 1
+    }
+    "Select a server to connect to:" {
+        puts "${GREEN}✓ Server selection menu displayed${NC}"
+    }
+}
+
+# Select Development Tools server
+send "\r"  ;# Select first server
+expect {
+    timeout {
+        puts "${RED}✗ Failed to connect to server${NC}"
+        exit 1
+    }
+    "Connected to Development Tools" {
+        puts "${GREEN}✓ Connected to Development Tools server${NC}"
+    }
+}
+
+# Wait for new prompt with server name
+expect "\[Development Tools\] What would you like to do?"
+
+# Test 3: List Tools
+puts "\n${YELLOW}Test 2: Listing tools${NC}"
+send "\r"  ;# Select first option (List Tools)
+expect {
+    timeout {
+        puts "${RED}✗ Failed to list tools${NC}"
+        exit 1
+    }
+    "format_code" {
+        puts "${GREEN}✓ Tools listed successfully${NC}"
+    }
+}
+
+expect "\[Development Tools\] What would you like to do?"
+
+# Test 4: List Resources  
+puts "\n${YELLOW}Test 3: Listing resources${NC}"
+send "\033\[B"  ;# Down arrow
+send "\r"  ;# Enter
+expect {
+    timeout {
+        puts "${RED}✗ Failed to list resources${NC}"
+        exit 1
+    }
+    "project_config" {
+        puts "${GREEN}✓ Resources listed successfully${NC}"
+    }
+}
+
+expect "\[Development Tools\] What would you like to do?"
+
+# Test 5: List Prompts
+puts "\n${YELLOW}Test 4: Listing prompts${NC}"
+send "\033\[B"  ;# Down arrow
+send "\033\[B"  ;# Down arrow
+send "\r"  ;# Enter
+expect {
+    timeout {
+        puts "${RED}✗ Failed to list prompts${NC}"
+        exit 1
+    }
+    "code_review" {
+        puts "${GREEN}✓ Prompts listed successfully${NC}"
+    }
+}
+
+expect "\[Development Tools\] What would you like to do?"
+
+# Test 6: Call Tool
+puts "\n${YELLOW}Test 5: Calling format_code tool${NC}"
+send "\033\[B"  ;# Down arrow
+send "\033\[B"  ;# Down arrow
+send "\033\[B"  ;# Down arrow
+send "\r"  ;# Enter (Call Tool)
+
+expect "Select a tool to call:"
+send "\r"  ;# Select first tool
+
+expect "Enter tool arguments"
+send "{\"code\": \"function test(){console.log('hello')}\", \"language\": \"javascript\"}\r"
+
+expect {
+    timeout {
+        puts "${RED}✗ Failed to execute tool${NC}"
+        exit 1
+    }
+    "Successfully formatted" {
+        puts "${GREEN}✓ Tool executed successfully${NC}"
+    }
+}
+
+expect "\[Development Tools\] What would you like to do?"
+
+# Test 7: Read Resource
+puts "\n${YELLOW}Test 6: Reading resource${NC}"
+send "\033\[B"  ;# Down arrow  
+send "\033\[B"  ;# Down arrow
+send "\033\[B"  ;# Down arrow
+send "\033\[B"  ;# Down arrow
+send "\r"  ;# Enter (Read Resource)
+
+expect "Select a resource to read:"
+send "\r"  ;# Select first resource
+
+expect {
+    timeout {
+        puts "${RED}✗ Failed to read resource${NC}"
+        exit 1
+    }
+    "Project Configuration Overview" {
+        puts "${GREEN}✓ Resource read successfully${NC}"
+    }
+}
+
+expect "\[Development Tools\] What would you like to do?"
+
+# Test 8: Get Prompt
+puts "\n${YELLOW}Test 7: Getting prompt${NC}"
+send "\033\[B"  ;# Down arrow
+send "\033\[B"  ;# Down arrow
+send "\033\[B"  ;# Down arrow
+send "\033\[B"  ;# Down arrow
+send "\033\[B"  ;# Down arrow
+send "\r"  ;# Enter (Get Prompt)
+
+expect "Select a prompt to get:"
+send "\r"  ;# Select first prompt
+
+expect "Enter prompt arguments"
+send "{\"filePath\": \"test.js\"}\r"
+
+expect {
+    timeout {
+        puts "${RED}✗ Failed to get prompt${NC}"
+        exit 1
+    }
+    "comprehensive code review" {
+        puts "${GREEN}✓ Prompt retrieved successfully${NC}"
+    }
+}
+
+expect "\[Development Tools\] What would you like to do?"
+
+# Test 9: Disconnect
+puts "\n${YELLOW}Test 8: Disconnecting from server${NC}"
+send "\033\[B"  ;# Down arrow
+send "\033\[B"  ;# Down arrow
+send "\033\[B"  ;# Down arrow
+send "\033\[B"  ;# Down arrow
+send "\033\[B"  ;# Down arrow
+send "\033\[B"  ;# Down arrow
+send "\r"  ;# Enter (Disconnect)
+
+expect {
+    timeout {
+        puts "${RED}✗ Failed to disconnect${NC}"
+        exit 1
+    }
+    "Disconnected from server" {
+        puts "${GREEN}✓ Disconnected successfully${NC}"
+    }
+}
+
+expect "\[Not Connected\] What would you like to do?"
+
+# Test 10: Exit
+puts "\n${YELLOW}Test 9: Exiting CLI${NC}"
+send "\033\[B"  ;# Down arrow to Exit
+send "\r"  ;# Enter
+
+expect {
+    timeout {
+        puts "${RED}✗ Failed to exit gracefully${NC}"
+        exit 1
+    }
+    "Goodbye!" {
+        puts "${GREEN}✓ Exited successfully${NC}"
+    }
+}
+
+expect eof
+
+puts "\n${BLUE}========================================${NC}"
+puts "${BLUE}Test Summary${NC}"
+puts "${BLUE}========================================${NC}"
+puts "${GREEN}All tests passed!${NC}"
+puts "${GREEN}✓ CLI client functionality verified${NC}"
+
+exit 0

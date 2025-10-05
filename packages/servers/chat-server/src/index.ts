@@ -19,6 +19,7 @@ const logger = new Logger('chat-server');
 // Configuration
 const PORT = 4000;
 const DEV_TOOLS_URL = 'http://localhost:3001/mcp';
+const SKIP_MCP_CONNECTION = process.env.SKIP_MCP_CONNECTION === 'true';
 
 // Elicitation request tracking
 interface PendingElicitation {
@@ -232,7 +233,8 @@ class EnhancedChatService {
 
   async getAvailableTools(): Promise<any[]> {
     if (!this.devToolsClient) {
-      throw new Error('Dev-tools client not connected');
+      logger.info('Dev-tools client not connected, returning empty tools list');
+      return [];
     }
 
     try {
@@ -250,7 +252,11 @@ class EnhancedChatService {
 
   async executeToolCall(toolName: string, args: any): Promise<any> {
     if (!this.devToolsClient) {
-      throw new Error('Dev-tools client not connected');
+      logger.info('Dev-tools client not connected, cannot execute tool calls');
+      return {
+        content: [{ type: 'text', text: 'Tool execution not available - MCP servers not connected' }],
+        isError: false
+      };
     }
 
     try {
@@ -465,11 +471,15 @@ async function startServer() {
   // Initialize Enhanced Chat service
   const chatService = new EnhancedChatService(claudeApiKey, openaiApiKey);
   
-  try {
-    await chatService.connectToDevTools();
-  } catch (error) {
-    logger.error('Failed to initialize chat service:', error);
-    process.exit(1);
+  if (!SKIP_MCP_CONNECTION) {
+    try {
+      await chatService.connectToDevTools();
+    } catch (error) {
+      logger.error('Failed to initialize chat service:', error);
+      process.exit(1);
+    }
+  } else {
+    logger.info('Skipping MCP server connections (SKIP_MCP_CONNECTION=true)');
   }
 
   // Health check endpoint
@@ -479,7 +489,7 @@ async function startServer() {
       server: 'chat-server', 
       version: '1.0.0',
       connected_servers: ['dev-tools'],
-      llm_providers: chatService.getAvailableProviders().map(p => p.name),
+      llm_providers: chatService.getAvailableProviders().map((p: any) => p.name),
       current_provider: chatService.getCurrentProvider()
     });
   });
@@ -567,11 +577,11 @@ async function startServer() {
       const { name } = req.params;
       const providers = chatService.getAvailableProviders();
       
-      const providerExists = providers.some(p => p.name === name);
+      const providerExists = providers.some((p: any) => p.name === name);
       if (!providerExists) {
         return res.status(404).json({ 
           error: 'Provider not found',
-          available: providers.map(p => p.name)
+          available: providers.map((p: any) => p.name)
         });
       }
       

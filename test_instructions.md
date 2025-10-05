@@ -307,23 +307,370 @@ pnpm start
 
 ### Test 4.2: Web Client
 ```bash
-# Terminal 7: Start web client
+# Terminal 7: Start web client (ensure servers are running in HTTP mode first)
 cd packages/clients/web
 pnpm dev
-# Should start on http://localhost:5173
+# Should start on http://localhost:5173 or similar port
 ```
 
-**Expected Results:**
-- [ ] Vite dev server starts
-- [ ] Browser opens to http://localhost:5173
-- [ ] Web interface loads
+**Prerequisites:**
+- [ ] Start all MCP servers in HTTP mode first:
+  ```bash
+  cd packages/servers/dev-tools && pnpm start -- --http &
+  cd packages/servers/analytics && pnpm start -- --http &
+  cd packages/servers/cloud-ops && pnpm start -- --http &
+  cd packages/servers/knowledge && pnpm start -- --http &
+  ```
 
-**Test Web Operations:**
-1. Connect to a server (enter server URL)
-2. View server capabilities
-3. Execute tools
-4. View resources
-5. Check logs panel
+**Expected Results:**
+- [ ] Vite dev server starts successfully
+- [ ] Browser opens to web client URL (http://localhost:5173)
+- [ ] "MCP Web Client" title displayed
+- [ ] "Connect to Model Context Protocol servers and explore their capabilities" subtitle shown
+- [ ] Four server cards visible in "Available Servers" section
+
+**Test Web Client Interface (Complete Checklist):**
+
+#### 1. Initial Interface Verification
+- [ ] **Header**: "MCP Web Client" title prominently displayed
+- [ ] **Subtitle**: Descriptive text about connecting to MCP servers
+- [ ] **Available Servers Section**: Left panel with 4 server cards:
+  - [ ] Development Tools (blue wrench icon, Port: 3001)
+  - [ ] Data Analytics (green database icon, Port: 3002) 
+  - [ ] Cloud Operations (purple cloud icon, Port: 3003)
+  - [ ] Knowledge Base (orange book icon, Port: 3004)
+- [ ] **Server Capabilities Section**: Right panel (initially empty)
+- [ ] **Console Output**: Bottom panel with "Clear" button
+
+#### 2. Server Connection Testing
+- [ ] **Connect to Development Tools**:
+  - Click "Connect" button on Development Tools card
+  - Green checkmark and "Connected" status appears
+  - Server card background changes to indicate connection
+  - Session ID displayed (e.g., "Session: dd732a63...")
+  - "Disconnect" button becomes available (red X)
+
+#### 3. Server Capabilities Display
+After connecting to Development Tools:
+- [ ] **Three capability tabs** appear in right panel:
+  - "Tools (6)" tab - highlighted in blue
+  - "Resources (4)" tab
+  - "Prompts (3)" tab
+
+#### 4. Tools Testing
+- [ ] **Tools tab displays 6 tools**:
+  - format_code: "Format code using Prettier with language-specific support"
+  - list_project_files: "List source code files in current project with filtering options"
+  - read_file: "Read contents of a specific file with syntax highlighting info"
+  - interactive_code_review: "Perform customized code review with user-specified criteria via elicitation"
+  - generate_documentation: "Generate documentation for code using AI assistance via sampling"  
+  - scan_project: "Scan project files with progress reporting using MCP progress notifications"
+
+- [ ] **Tool Execution - format_code**:
+  - Click "Configure" button on format_code tool
+  - Modal dialog opens centered on screen with backdrop
+  - Modal shows "Configure: format_code" title with X close button
+  - Code textarea pre-filled with sample JavaScript (6 rows)
+  - Language dropdown set to "JavaScript"
+  - Enhanced styling with focus states and better spacing
+  - Click "Execute Tool" button (green) in bottom-right
+  - Tool execution completes successfully
+  - Result displayed in console output panel
+  - Modal closes automatically after execution
+
+- [ ] **Tool Execution - read_file**:
+  - Click "Configure" button on read_file tool
+  - Modal dialog opens with file path input field
+  - Field pre-filled with "README.md" (existing file)
+  - Click "Execute Tool" button
+  - Tool execution completes successfully
+  - File contents displayed in console output panel
+  - Shows actual README.md content from project root
+
+- [ ] **Tool Execution - interactive_code_review**:
+  - Click "Configure" button on interactive_code_review tool
+  - Modal dialog opens with code and language fields
+  - Pre-filled with sample JavaScript function
+  - Click "Execute Tool" button
+  - **Expected Result**: Tool returns "Method not found" error
+  - **Note**: This tool uses MCP elicitation feature not supported by web client
+  - Elicitation allows interactive prompting during execution (supported in chat clients only)
+
+#### Data Analytics Server Tools
+When connected to Data Analytics server, test these additional tools:
+
+- [ ] **Tool Execution - calculate_statistics**:
+  - Pre-filled with array `[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]` and measures `["mean", "median", "std"]`
+  - Returns statistical analysis with mean: 5.5000, median: 5.5000, standardDeviation: 3.0277
+
+- [ ] **Tool Execution - generate_sample_data**:
+  - Pre-filled with format: "json", recordCount: 10
+  - Generates sample JSON data with id, value, category, region, date, score fields
+
+- [ ] **Tool Execution - export_data**:
+  - Pre-filled with sample JSON array data, format: "json", fileName: "export_data.json"
+  - Tool execution should now succeed (data parsed from string to array)
+
+- [ ] **Tool Execution - process_large_dataset**:
+  - Pre-filled with operation: "aggregate", dataPath: "/tmp/large_dataset.csv"
+  - Returns processing results with aggregated statistics and performance metrics
+
+- [ ] **Tool Execution - interactive_data_analysis**:
+  - **Expected Result**: Returns "Method not found" error
+  - **Note**: Uses elicitation feature like interactive_code_review
+
+#### Cloud Operations Server Tools
+When connected to Cloud Operations server, test these additional tools:
+
+- [ ] **Tool Execution - check_service_health**:
+  - Pre-filled with serviceName: "" (checks all services), environment: "prod"
+  - Returns comprehensive health report with service status, uptime, CPU, memory usage
+
+- [ ] **Tool Execution - deploy_service**:
+  - Pre-filled with serviceName: "user-service", version: "2.2.0", environment: "staging"
+  - Returns deployment progress with validation, building, uploading steps
+
+- [ ] **Tool Execution - get_system_metrics**:
+  - Pre-filled with timeRange: "1h", metrics: ["cpu", "memory"]
+  - Returns current, average, peak, minimum values for CPU and memory
+
+- [ ] **Tool Execution - scale_service**:
+  - Pre-filled with serviceName: "api-gateway", targetInstances: 3, environment: "prod"
+  - Should now work correctly (fixed targetInstances parameter)
+
+- [ ] **Tool Execution - interactive_deployment_planner**:
+  - Pre-filled with serviceName: "user-service", targetEnvironment: "staging"
+  - May return "Method not found" if it uses elicitation feature
+
+- [ ] **Tool Execution - monitor_deployments**:
+  - Pre-filled with environment: "prod", limit: 10
+  - Returns recent deployment history and status
+
+- [ ] **Tool Execution - rollback_deployment**:
+  - Pre-filled with serviceName: "user-service", environment: "staging", targetVersion: "2.1.0"
+  - Returns rollback execution progress
+
+- [ ] **Tool Execution - manage_alerts**:
+  - Pre-filled with action: "list", alertType: "critical"
+  - Returns list of alerts for the specified type and action
+
+- [ ] **Tool Execution - deploy_multi_service**:
+  - Pre-filled with services: ["user-service", "api-gateway", "notification-service"], environment: "staging", strategy: "rolling"
+  - Services array of strings (service names) parsed from JSON string
+
+#### Knowledge Base Server Tools
+When connected to Knowledge Base server, test these additional tools:
+
+- [ ] **Tool Execution - search_documents**:
+  - Pre-filled with query: "MCP protocol", limit: 5
+  - Returns search results with document matches and relevance scores
+
+- [ ] **Tool Execution - get_document**:
+  - Pre-filled with documentId: "doc-1"
+  - Returns full document content with metadata (title, category, tags, author, dates)
+
+- [ ] **Tool Execution - create_document**:
+  - Pre-filled with title, content, category: "general", tags: ["demo", "mcp", "web-client"]
+  - Tags array parsed from JSON string to actual array
+
+- [ ] **Tool Execution - list_categories**:
+  - No parameters needed
+  - Returns overview of categories, available tags, and total document count
+
+- [ ] **Tool Execution - bulk_knowledge_processing**:
+  - Pre-filled with operation: "analyze", targetScope: "all"
+  - Performs bulk operations on knowledge base documents
+
+- [ ] **Tool Execution - test_elicitation**:
+  - No parameters needed
+  - **Expected Result**: Returns "Method not found" error (elicitation not supported by web client)
+
+- [ ] **Tool Execution - interactive_knowledge_curator**:
+  - Pre-filled with mode: "analyze", topic: "MCP protocol documentation"
+  - May return "Method not found" if it uses elicitation features
+
+#### 5. Resources Testing  
+- [ ] **Switch to Resources (4) tab**
+- [ ] **Four resources displayed**:
+  - project_config: "devtools://config/project" - "Access to project configuration files and settings"
+  - test_reports: "devtools://reports/testing" - "Recent test execution reports and coverage data"
+  - build_configs: "devtools://config/build" - "Build system configurations and optimization settings"
+  - code_metrics: "devtools://metrics/code-quality" - "Code quality metrics including complexity, maintainability, and technical debt"
+
+- [ ] **Direct Resource Reading**:
+  - Click "Read" button on any resource
+  - Resource content loads and displays in console
+  - Verify content is readable and properly formatted
+
+- [ ] **Custom Resource Reading with Modal**:
+  - Click "Custom" button on any resource
+  - Modal dialog opens centered on screen with backdrop
+  - Modal shows "Configure Resource: [name]" title with X close button
+  - Resource URI field pre-filled with original URI
+  - Resource description displayed if available
+  - Enhanced styling with purple focus states
+  - Modify URI if desired and click "Read Resource" button
+  - Resource content displays in console output panel
+  - Modal closes automatically after execution
+
+#### 6. Prompts Testing
+- [ ] **Switch to Prompts (3) tab** 
+- [ ] **Three prompts displayed**:
+  - debug_session: "Get systematic debugging guidance for troubleshooting code issues"
+  - test_strategy: "Design comprehensive testing strategies for code features and applications"
+  - code_review: "Perform comprehensive code review with suggestions for improvement"
+
+- [ ] **Prompt Configuration with Modal**:
+  - Click "Configure" button on code_review prompt
+  - Modal dialog opens centered on screen with backdrop
+  - Modal shows "Configure Prompt: code_review" title with X close button
+  - File Path field pre-filled with "package.json"
+  - Enhanced styling with orange focus states and better spacing
+  - Click "Get Prompt" button (orange) in bottom-right
+  - Prompt retrieval completes successfully
+  - Detailed prompt template displayed in console output panel
+  - Modal closes automatically after execution
+
+- [ ] **Test Different Prompt Types**:
+
+**Debug Session Prompt:**
+  - Click "Configure" on debug_session prompt
+  - Pre-filled with errorMessage: "TypeError: Cannot read property of undefined"
+  - Pre-filled codeSnippet textarea with sample code
+  - Environment dropdown: development/staging/production (default: development)
+  - Urgency dropdown: low/medium/high/critical (default: medium)
+  - All fields should execute successfully
+
+**Test Strategy Prompt:**
+  - Click "Configure" on test_strategy prompt  
+  - Pre-filled with feature: "User authentication system"
+  - CodeType dropdown: function/class/module/api/ui/integration (default: api)
+  - TestingFramework: "Jest"
+  - Coverage dropdown: basic/comprehensive/edge-cases (default: comprehensive)
+  - Constraints textarea with CI/CD pipeline requirements
+  - All fields should execute successfully
+
+**Field Type Verification:**
+  - Text inputs: filePath, feature, testingFramework, serviceName, topic, dataSource
+  - Textareas (4 rows): codeSnippet, questions, symptoms, constraints, dataDescription, currentIssues, preferredCharts
+  - Dropdowns: codeType, analysisType, severity, strategy, depth, coverage, urgency, environment, audience, purpose, systemType, timeframe, stakeholders
+
+#### Data Analytics Server Prompts
+When connected to Data Analytics server, test these additional prompts:
+
+**Data Analysis Workflow Prompt:**
+  - Click "Configure" on data_analysis_workflow prompt
+  - Pre-filled with dataSource: "/tmp/sample.csv"
+  - AnalysisType dropdown: exploratory/statistical/trend/comparative (default: exploratory)
+  - Questions textarea: "What are the main trends in the data?"
+  - All fields should execute successfully
+
+**Visualization Request Prompt:**
+  - Click "Configure" on visualization_request prompt
+  - DataDescription textarea with sales data description
+  - Audience dropdown: technical/business/general/academic (default: business)
+  - Purpose dropdown: exploration/presentation/dashboard/report (default: presentation)
+  - PreferredCharts textarea: "bar chart, line graph, heat map"
+  - All fields should execute successfully
+
+**Performance Review Prompt:**
+  - Click "Configure" on performance_review prompt
+  - SystemType dropdown: dashboard/reports/etl/database/api (default: dashboard)
+  - Timeframe dropdown: daily/weekly/monthly/quarterly (default: monthly)
+  - Stakeholders dropdown: technical/business/mixed (default: business)
+  - CurrentIssues textarea with performance problems description
+  - All fields should execute successfully
+
+#### Cloud Operations Server Prompts
+When connected to Cloud Operations server, test these additional prompts:
+
+**Deployment Plan Prompt:**
+  - Click "Configure" on deployment_plan prompt
+  - Pre-filled with serviceName: "user-service"
+  - TargetEnvironment dropdown: development/staging/production (default: development)
+  - DeploymentType dropdown: rolling/blue-green/canary (default: rolling)
+  - All fields should execute successfully
+
+**Infrastructure Audit Prompt:**
+  - Click "Configure" on infrastructure_audit prompt
+  - AuditScope dropdown: security/performance/compliance/all (default: security)
+  - Environment dropdown: dev/staging/prod/all (default: dev)
+  - Timeframe dropdown: week/month/quarter/year (default: month)
+  - ComplianceStandards textarea: "SOC2, ISO27001, GDPR"
+  - All fields should execute successfully
+
+#### Knowledge Base Server Prompts
+When connected to Knowledge Base server, test these additional prompts:
+
+**Research Assistant Prompt:**
+  - Click "Configure" on research_assistant prompt
+  - Pre-filled with topic: "Model Context Protocol"
+  - Depth dropdown: basic/comprehensive/detailed (default: comprehensive)
+  - Focus text field: "technical implementation"
+  - All fields should execute successfully
+
+**Concept Explanation Prompt:**
+  - Click "Configure" on concept_explanation prompt
+  - Pre-filled with concept: "Model Context Protocol"
+  - AudienceLevel dropdown: beginner/intermediate/advanced (default: intermediate)
+  - Format dropdown: tutorial/reference/overview/deep-dive (default: overview)
+  - All fields should execute successfully
+
+**Learning Path Prompt:**
+  - Click "Configure" on learning_path prompt
+  - Pre-filled with subject: "Model Context Protocol"
+  - CurrentLevel dropdown: complete-beginner/some-experience/intermediate/advanced (default: some-experience)
+  - LearningGoal dropdown: foundational/professional/expert/teaching (default: professional)
+  - TimeCommitment dropdown: casual/regular/intensive/immersive (default: regular)
+  - LearningStyle dropdown: theoretical/practical/project-based/mixed (default: mixed)
+  - All fields should execute successfully
+
+- [ ] **Modal Close Functionality**:
+  - Test X button closes modal without executing prompt
+  - Test Cancel button closes modal and resets state
+  - Test clicking outside modal (backdrop) behavior
+
+#### 7. Console Output Monitoring
+- [ ] **Console shows connection logs**:
+  - "MCP Web Client initialized..." message
+  - "Connecting to Development Tools..." message  
+  - "SUCCESS: ✓ Connected to Development Tools" message
+  - Server capability loading messages:
+    - "INFO: Loading server capabilities..."
+    - "INFO: Loaded 6 tools"
+    - "INFO: Loaded 4 resources" 
+    - "INFO: Loaded 3 prompts"
+- [ ] **Clear button** removes console messages
+
+#### 8. Multi-Server Connection Testing
+- [ ] **Connect to additional servers** (Data Analytics, Cloud Operations, Knowledge Base)
+- [ ] **Verify each server**:
+  - Connection status updates correctly
+  - Different tools/resources/prompts for each server
+  - Can switch between connected servers
+  - Console logs show successful connections
+
+#### 9. Server Disconnection
+- [ ] **Disconnect functionality**:
+  - Click red "Disconnect" button
+  - Server card returns to "Connect" state
+  - Capabilities panel clears or updates
+  - Console shows disconnection message
+
+#### 10. Error Handling
+- [ ] **Connection failures handled gracefully**:
+  - Try connecting when servers are not running
+  - Error messages displayed appropriately
+  - UI remains responsive
+  - User can retry connections
+
+#### 11. UI Responsiveness
+- [ ] **Interface is responsive and functional**:
+  - Buttons provide visual feedback on hover/click
+  - Loading states shown during operations
+  - Modals open and close properly
+  - Scrolling works if content overflows
+  - Layout adapts to different window sizes
 
 **Status:** ✅ Pass / ❌ Fail  
 **Notes:** _______________

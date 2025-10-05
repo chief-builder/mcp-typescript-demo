@@ -96,9 +96,13 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const outputRef = useRef<HTMLPreElement>(null);
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
+  const [showToolModal, setShowToolModal] = useState(false);
   const [toolArguments, setToolArguments] = useState<Record<string, any>>({});
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
+  const [showResourceModal, setShowResourceModal] = useState(false);
+  const [resourceUri, setResourceUri] = useState<string>('');
   const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
+  const [showPromptModal, setShowPromptModal] = useState(false);
   const [promptArguments, setPromptArguments] = useState<Record<string, any>>({});
 
   // Add log function
@@ -291,14 +295,25 @@ function App() {
   // Handle resource selection for custom URI input
   const handleResourceSelect = (resource: Resource) => {
     setSelectedResource(resource);
+    setResourceUri(resource.uri);
+    setShowResourceModal(true);
   };
 
   // Read resource with custom URI
   const readResourceWithCustomUri = async () => {
-    if (!selectedResource) return;
+    if (!selectedResource || !resourceUri) return;
     
-    await readResource(selectedResource.uri, selectedResource.name);
+    await readResource(resourceUri, selectedResource.name);
     setSelectedResource(null);
+    setResourceUri('');
+    setShowResourceModal(false);
+  };
+
+  // Close resource modal
+  const closeResourceModal = () => {
+    setSelectedResource(null);
+    setResourceUri('');
+    setShowResourceModal(false);
   };
 
   // Get prompt with user-provided arguments
@@ -370,6 +385,7 @@ function App() {
   // Handle tool selection for argument input
   const handleToolSelect = (toolName: string) => {
     setSelectedTool(toolName);
+    setShowToolModal(true);
     // Set default arguments based on tool
     const defaultArgs: Record<string, any> = {};
     
@@ -380,6 +396,20 @@ function App() {
     } else if (toolName === 'create_file') {
       defaultArgs.path = '/tmp/demo.txt';
       defaultArgs.content = 'Hello from MCP Web Client!';
+    } else if (toolName === 'read_file') {
+      defaultArgs.filePath = 'README.md';
+    } else if (toolName === 'list_project_files') {
+      defaultArgs.projectPath = '.';
+      defaultArgs.extensions = '.ts,.tsx,.js,.jsx';
+    } else if (toolName === 'interactive_code_review') {
+      defaultArgs.code = 'function hello() {\n  console.log("Hello World");\n}';
+      defaultArgs.language = 'javascript';
+    } else if (toolName === 'generate_documentation') {
+      defaultArgs.code = 'function hello() {\n  console.log("Hello World");\n}';
+      defaultArgs.language = 'javascript';
+    } else if (toolName === 'scan_project') {
+      defaultArgs.projectPath = '.';
+      defaultArgs.scanType = 'quick';
     } else if (toolName === 'analyze_project') {
       defaultArgs.projectPath = '.';
     }
@@ -392,6 +422,16 @@ function App() {
       defaultArgs.measures = '["mean", "median", "std"]';
     } else if (toolName === 'analyze_csv') {
       defaultArgs.filePath = '/tmp/sample.csv';
+    } else if (toolName === 'interactive_data_analysis') {
+      defaultArgs.dataPath = '/tmp/sample.csv';
+    } else if (toolName === 'export_data') {
+      defaultArgs.data = '[{"id": 1, "name": "Item 1", "value": 100}, {"id": 2, "name": "Item 2", "value": 200}]';
+      defaultArgs.format = 'json';
+      defaultArgs.fileName = 'export_data.json';
+    } else if (toolName === 'process_large_dataset') {
+      defaultArgs.operation = 'aggregate';
+      defaultArgs.dataPath = '/tmp/large_dataset.csv';
+      defaultArgs.options = '{"groupBy": "category", "metric": "sum"}';
     }
     // Cloud Operations Server
     else if (toolName === 'check_service_health') {
@@ -403,11 +443,28 @@ function App() {
       defaultArgs.environment = 'staging';
     } else if (toolName === 'scale_service') {
       defaultArgs.serviceName = 'api-gateway';
-      defaultArgs.instances = 3;
+      defaultArgs.targetInstances = 3;
       defaultArgs.environment = 'prod';
     } else if (toolName === 'get_system_metrics') {
       defaultArgs.timeRange = '1h';
       defaultArgs.metrics = '["cpu", "memory"]';
+    } else if (toolName === 'interactive_deployment_planner') {
+      defaultArgs.serviceName = 'user-service';
+      defaultArgs.targetEnvironment = 'staging';
+    } else if (toolName === 'monitor_deployments') {
+      defaultArgs.environment = 'prod';
+      defaultArgs.limit = 10;
+    } else if (toolName === 'rollback_deployment') {
+      defaultArgs.serviceName = 'user-service';
+      defaultArgs.environment = 'staging';
+      defaultArgs.targetVersion = '2.1.0';
+    } else if (toolName === 'manage_alerts') {
+      defaultArgs.action = 'list';
+      defaultArgs.alertType = 'critical';
+    } else if (toolName === 'deploy_multi_service') {
+      defaultArgs.services = '["user-service", "api-gateway", "notification-service"]';
+      defaultArgs.environment = 'staging';
+      defaultArgs.strategy = 'rolling';
     }
     // Knowledge Base Server
     else if (toolName === 'search_documents') {
@@ -415,6 +472,11 @@ function App() {
       defaultArgs.limit = 5;
     } else if (toolName === 'get_document') {
       defaultArgs.documentId = 'doc-1';
+    } else if (toolName === 'create_document') {
+      defaultArgs.title = 'New Document';
+      defaultArgs.content = 'This is a new document created via MCP web client.';
+      defaultArgs.category = 'general';
+      defaultArgs.tags = '["demo", "mcp", "web-client"]';
     } else if (toolName === 'add_document') {
       defaultArgs.title = 'New Document';
       defaultArgs.content = 'This is a new document added via MCP.';
@@ -426,6 +488,12 @@ function App() {
       defaultArgs.content = 'Updated content for the document.';
     } else if (toolName === 'delete_document') {
       defaultArgs.documentId = 'doc-1';
+    } else if (toolName === 'bulk_knowledge_processing') {
+      defaultArgs.operation = 'analyze';
+      defaultArgs.targetScope = 'all';
+    } else if (toolName === 'interactive_knowledge_curator') {
+      defaultArgs.mode = 'analyze';
+      defaultArgs.topic = 'MCP protocol documentation';
     }
     
     setToolArguments(defaultArgs);
@@ -446,11 +514,23 @@ function App() {
         if (typeof processedArgs.measures === 'string') {
           processedArgs.measures = JSON.parse(processedArgs.measures);
         }
+      } else if (selectedTool === 'export_data') {
+        if (typeof processedArgs.data === 'string') {
+          processedArgs.data = JSON.parse(processedArgs.data);
+        }
+      } else if (selectedTool === 'process_large_dataset') {
+        if (typeof processedArgs.options === 'string') {
+          processedArgs.options = JSON.parse(processedArgs.options);
+        }
+      } else if (selectedTool === 'deploy_multi_service') {
+        if (typeof processedArgs.services === 'string') {
+          processedArgs.services = JSON.parse(processedArgs.services);
+        }
       } else if (selectedTool === 'get_system_metrics') {
         if (typeof processedArgs.metrics === 'string') {
           processedArgs.metrics = JSON.parse(processedArgs.metrics);
         }
-      } else if (selectedTool === 'add_document') {
+      } else if (selectedTool === 'add_document' || selectedTool === 'create_document') {
         if (typeof processedArgs.tags === 'string') {
           processedArgs.tags = JSON.parse(processedArgs.tags);
         }
@@ -459,26 +539,56 @@ function App() {
       await executeTool(selectedTool, processedArgs);
       setSelectedTool(null);
       setToolArguments({});
+      setShowToolModal(false);
     } catch (error) {
       addLog(`❌ Error parsing arguments: ${error}`, 'error');
     }
   };
 
+  // Close tool modal
+  const closeToolModal = () => {
+    setSelectedTool(null);
+    setToolArguments({});
+    setShowToolModal(false);
+  };
+
   // Handle prompt selection for argument input
   const handlePromptSelect = (promptName: string) => {
     setSelectedPrompt(promptName);
+    setShowPromptModal(true);
     // Set default arguments based on prompt
     const defaultArgs: Record<string, any> = {};
     
     // Development Tools Server
     if (promptName === 'code_review') {
-      defaultArgs.filePath = 'src/App.tsx';
+      defaultArgs.filePath = 'package.json';
+    } else if (promptName === 'debug_session') {
+      defaultArgs.errorMessage = 'TypeError: Cannot read property of undefined';
+      defaultArgs.codeSnippet = 'const result = data.map(item => item.value);';
+      defaultArgs.environment = 'development';
+      defaultArgs.urgency = 'medium';
+    } else if (promptName === 'test_strategy') {
+      defaultArgs.feature = 'User authentication system';
+      defaultArgs.codeType = 'api';
+      defaultArgs.testingFramework = 'Jest';
+      defaultArgs.coverage = 'comprehensive';
+      defaultArgs.constraints = 'Must run in CI/CD pipeline under 5 minutes';
     }
     // Analytics Server
     else if (promptName === 'data_analysis_workflow') {
       defaultArgs.dataSource = '/tmp/sample.csv';
       defaultArgs.analysisType = 'exploratory';
       defaultArgs.questions = 'What are the main trends in the data?';
+    } else if (promptName === 'visualization_request') {
+      defaultArgs.dataDescription = 'Sales data with customer demographics and purchase behavior over the last 12 months';
+      defaultArgs.audience = 'business';
+      defaultArgs.purpose = 'presentation';
+      defaultArgs.preferredCharts = 'bar chart, line graph, heat map';
+    } else if (promptName === 'performance_review') {
+      defaultArgs.systemType = 'dashboard';
+      defaultArgs.timeframe = 'monthly';
+      defaultArgs.stakeholders = 'business';
+      defaultArgs.currentIssues = 'Slow loading times during peak hours, occasional timeout errors';
     }
     // Cloud Operations Server
     else if (promptName === 'incident_response') {
@@ -488,8 +598,14 @@ function App() {
     } else if (promptName === 'deployment_plan') {
       defaultArgs.serviceName = 'user-service';
       defaultArgs.version = '2.2.0';
-      defaultArgs.environment = 'production';
+      defaultArgs.targetEnvironment = 'staging';
+      defaultArgs.deploymentType = 'feature';
       defaultArgs.strategy = 'blue-green';
+    } else if (promptName === 'infrastructure_audit') {
+      defaultArgs.auditScope = 'comprehensive';
+      defaultArgs.environment = 'prod';
+      defaultArgs.timeframe = 'quarterly';
+      defaultArgs.complianceStandards = 'SOC2, ISO27001, PCI-DSS';
     }
     // Knowledge Base Server  
     else if (promptName === 'research_topic') {
@@ -500,6 +616,16 @@ function App() {
       defaultArgs.topic = 'Model Context Protocol';
       defaultArgs.depth = 'comprehensive';
       defaultArgs.focus = 'technical implementation';
+    } else if (promptName === 'concept_explanation') {
+      defaultArgs.concept = 'Model Context Protocol';
+      defaultArgs.audienceLevel = 'intermediate';
+      defaultArgs.format = 'overview';
+    } else if (promptName === 'learning_path') {
+      defaultArgs.subject = 'Model Context Protocol';
+      defaultArgs.currentLevel = 'some-experience';
+      defaultArgs.learningGoal = 'professional';
+      defaultArgs.timeCommitment = 'regular';
+      defaultArgs.learningStyle = 'mixed';
     }
     
     setPromptArguments(defaultArgs);
@@ -512,6 +638,14 @@ function App() {
     await getPrompt(selectedPrompt, promptArguments);
     setSelectedPrompt(null);
     setPromptArguments({});
+    setShowPromptModal(false);
+  };
+
+  // Close prompt modal
+  const closePromptModal = () => {
+    setSelectedPrompt(null);
+    setPromptArguments({});
+    setShowPromptModal(false);
   };
 
   return (
@@ -665,74 +799,6 @@ function App() {
                             </div>
                           ))}
                           
-                          {/* Tool Arguments Form */}
-                          {selectedTool && (
-                            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                              <h3 className="font-medium mb-3 text-blue-900">Configure: {selectedTool}</h3>
-                              <div className="space-y-3">
-                                {Object.entries(toolArguments).map(([key, value]) => (
-                                  <div key={key}>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                      {key.charAt(0).toUpperCase() + key.slice(1)}
-                                    </label>
-                                    {key === 'code' ? (
-                                      <textarea
-                                        value={value as string}
-                                        onChange={(e) => setToolArguments(prev => ({ ...prev, [key]: e.target.value }))}
-                                        className="w-full p-2 border border-gray-300 rounded text-sm font-mono"
-                                        rows={4}
-                                        placeholder={`Enter ${key}...`}
-                                      />
-                                    ) : key === 'language' ? (
-                                      <select
-                                        value={value as string}
-                                        onChange={(e) => setToolArguments(prev => ({ ...prev, [key]: e.target.value }))}
-                                        className="w-full p-2 border border-gray-300 rounded text-sm"
-                                      >
-                                        <option value="javascript">JavaScript</option>
-                                        <option value="typescript">TypeScript</option>
-                                        <option value="json">JSON</option>
-                                        <option value="css">CSS</option>
-                                        <option value="html">HTML</option>
-                                        <option value="markdown">Markdown</option>
-                                      </select>
-                                    ) : key === 'format' ? (
-                                      <select
-                                        value={value as string}
-                                        onChange={(e) => setToolArguments(prev => ({ ...prev, [key]: e.target.value }))}
-                                        className="w-full p-2 border border-gray-300 rounded text-sm"
-                                      >
-                                        <option value="json">JSON</option>
-                                        <option value="csv">CSV</option>
-                                      </select>
-                                    ) : (
-                                      <input
-                                        type={key === 'recordCount' ? 'number' : 'text'}
-                                        value={value as string}
-                                        onChange={(e) => setToolArguments(prev => ({ ...prev, [key]: e.target.value }))}
-                                        className="w-full p-2 border border-gray-300 rounded text-sm"
-                                        placeholder={`Enter ${key}...`}
-                                      />
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                              <div className="flex space-x-2 mt-4">
-                                <button
-                                  onClick={executeToolWithArgs}
-                                  className="px-4 py-2 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition-colors"
-                                >
-                                  Execute Tool
-                                </button>
-                                <button
-                                  onClick={() => { setSelectedTool(null); setToolArguments({}); }}
-                                  className="px-4 py-2 bg-gray-500 text-white rounded text-sm hover:bg-gray-600 transition-colors"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            </div>
-                          )}
                         </>
                       ) : (
                         <p className="text-gray-500">No tools available</p>
@@ -770,43 +836,6 @@ function App() {
                             </div>
                           ))}
                           
-                          {/* Custom Resource URI Form */}
-                          {selectedResource && (
-                            <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                              <h3 className="font-medium mb-3 text-purple-900">Custom Resource URI</h3>
-                              <div className="space-y-3">
-                                <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Resource URI
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={selectedResource.uri}
-                                    onChange={(e) => setSelectedResource(prev => prev ? { ...prev, uri: e.target.value } : null)}
-                                    className="w-full p-2 border border-gray-300 rounded text-sm font-mono"
-                                    placeholder="Enter custom resource URI..."
-                                  />
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    Modify the URI to read different resources or parameters
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex space-x-2 mt-4">
-                                <button
-                                  onClick={readResourceWithCustomUri}
-                                  className="px-4 py-2 bg-purple-500 text-white rounded text-sm hover:bg-purple-600 transition-colors"
-                                >
-                                  Read Resource
-                                </button>
-                                <button
-                                  onClick={() => setSelectedResource(null)}
-                                  className="px-4 py-2 bg-gray-500 text-white rounded text-sm hover:bg-gray-600 transition-colors"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            </div>
-                          )}
                         </>
                       ) : (
                         <p className="text-gray-500">No resources available</p>
@@ -835,63 +864,6 @@ function App() {
                             </div>
                           ))}
                           
-                          {/* Prompt Arguments Form */}
-                          {selectedPrompt && (
-                            <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                              <h3 className="font-medium mb-3 text-orange-900">Configure: {selectedPrompt}</h3>
-                              <div className="space-y-3">
-                                {Object.entries(promptArguments).map(([key, value]) => (
-                                  <div key={key}>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                      {key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
-                                    </label>
-                                    {key === 'analysisType' ? (
-                                      <select
-                                        value={value as string}
-                                        onChange={(e) => setPromptArguments(prev => ({ ...prev, [key]: e.target.value }))}
-                                        className="w-full p-2 border border-gray-300 rounded text-sm"
-                                      >
-                                        <option value="exploratory">Exploratory</option>
-                                        <option value="statistical">Statistical</option>
-                                        <option value="trend">Trend</option>
-                                        <option value="comparative">Comparative</option>
-                                      </select>
-                                    ) : key === 'questions' ? (
-                                      <textarea
-                                        value={value as string}
-                                        onChange={(e) => setPromptArguments(prev => ({ ...prev, [key]: e.target.value }))}
-                                        className="w-full p-2 border border-gray-300 rounded text-sm"
-                                        rows={3}
-                                        placeholder="Enter your analysis questions..."
-                                      />
-                                    ) : (
-                                      <input
-                                        type="text"
-                                        value={value as string}
-                                        onChange={(e) => setPromptArguments(prev => ({ ...prev, [key]: e.target.value }))}
-                                        className="w-full p-2 border border-gray-300 rounded text-sm"
-                                        placeholder={`Enter ${key.replace(/([A-Z])/g, ' $1').toLowerCase()}...`}
-                                      />
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                              <div className="flex space-x-2 mt-4">
-                                <button
-                                  onClick={executePromptWithArgs}
-                                  className="px-4 py-2 bg-orange-500 text-white rounded text-sm hover:bg-orange-600 transition-colors"
-                                >
-                                  Get Prompt
-                                </button>
-                                <button
-                                  onClick={() => { setSelectedPrompt(null); setPromptArguments({}); }}
-                                  className="px-4 py-2 bg-gray-500 text-white rounded text-sm hover:bg-gray-600 transition-colors"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            </div>
-                          )}
                         </>
                       ) : (
                         <p className="text-gray-500">No prompts available</p>
@@ -909,6 +881,475 @@ function App() {
           </div>
         </div>
       </div>
+
+      {/* Tool Configuration Modal */}
+      {showToolModal && selectedTool && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Configure: {selectedTool}</h3>
+                <button
+                  onClick={closeToolModal}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                {Object.entries(toolArguments).map(([key, value]) => (
+                  <div key={key}>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {key.charAt(0).toUpperCase() + key.slice(1)}
+                    </label>
+                    {key === 'code' ? (
+                      <textarea
+                        value={value as string}
+                        onChange={(e) => setToolArguments(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        rows={6}
+                        placeholder={`Enter ${key}...`}
+                      />
+                    ) : key === 'language' ? (
+                      <select
+                        value={value as string}
+                        onChange={(e) => setToolArguments(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="javascript">JavaScript</option>
+                        <option value="typescript">TypeScript</option>
+                        <option value="json">JSON</option>
+                        <option value="css">CSS</option>
+                        <option value="html">HTML</option>
+                        <option value="markdown">Markdown</option>
+                      </select>
+                    ) : key === 'format' ? (
+                      <select
+                        value={value as string}
+                        onChange={(e) => setToolArguments(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="json">JSON</option>
+                        <option value="csv">CSV</option>
+                      </select>
+                    ) : (
+                      <input
+                        type={key === 'recordCount' ? 'number' : 'text'}
+                        value={value as string}
+                        onChange={(e) => setToolArguments(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder={`Enter ${key}...`}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+              
+              <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
+                <button
+                  onClick={closeToolModal}
+                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={executeToolWithArgs}
+                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                >
+                  Execute Tool
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Resource Configuration Modal */}
+      {showResourceModal && selectedResource && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Configure Resource: {selectedResource.name || 'Custom Resource'}</h3>
+                <button
+                  onClick={closeResourceModal}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Resource URI
+                  </label>
+                  <input
+                    type="text"
+                    value={resourceUri}
+                    onChange={(e) => setResourceUri(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="Enter custom resource URI..."
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Modify the URI to read different resources or parameters
+                  </p>
+                </div>
+                
+                {selectedResource.description && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Description
+                    </label>
+                    <p className="text-sm text-gray-600 p-3 bg-gray-50 rounded-lg">
+                      {selectedResource.description}
+                    </p>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
+                <button
+                  onClick={closeResourceModal}
+                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={readResourceWithCustomUri}
+                  className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+                >
+                  Read Resource
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Prompt Configuration Modal */}
+      {showPromptModal && selectedPrompt && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Configure Prompt: {selectedPrompt}</h3>
+                <button
+                  onClick={closePromptModal}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                {Object.entries(promptArguments).map(([key, value]) => (
+                  <div key={key}>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
+                    </label>
+                    {key === 'analysisType' ? (
+                      <select
+                        value={value as string}
+                        onChange={(e) => setPromptArguments(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value="exploratory">Exploratory</option>
+                        <option value="statistical">Statistical</option>
+                        <option value="trend">Trend</option>
+                        <option value="comparative">Comparative</option>
+                      </select>
+                    ) : key === 'questions' || key === 'symptoms' || key === 'codeSnippet' || key === 'constraints' || key === 'dataDescription' || key === 'currentIssues' || key === 'preferredCharts' ? (
+                      <textarea
+                        value={value as string}
+                        onChange={(e) => setPromptArguments(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        rows={4}
+                        placeholder={`Enter ${key.replace(/([A-Z])/g, ' $1').toLowerCase()}...`}
+                      />
+                    ) : key === 'severity' ? (
+                      <select
+                        value={value as string}
+                        onChange={(e) => setPromptArguments(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="critical">Critical</option>
+                      </select>
+                    ) : key === 'strategy' ? (
+                      <select
+                        value={value as string}
+                        onChange={(e) => setPromptArguments(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value="blue-green">Blue-Green</option>
+                        <option value="rolling">Rolling</option>
+                        <option value="canary">Canary</option>
+                        <option value="recreate">Recreate</option>
+                      </select>
+                    ) : key === 'depth' ? (
+                      <select
+                        value={value as string}
+                        onChange={(e) => setPromptArguments(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value="basic">Basic</option>
+                        <option value="comprehensive">Comprehensive</option>
+                        <option value="detailed">Detailed</option>
+                        <option value="expert">Expert</option>
+                      </select>
+                    ) : key === 'codeType' ? (
+                      <select
+                        value={value as string}
+                        onChange={(e) => setPromptArguments(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value="function">Function</option>
+                        <option value="class">Class</option>
+                        <option value="module">Module</option>
+                        <option value="api">API</option>
+                        <option value="ui">UI</option>
+                        <option value="integration">Integration</option>
+                      </select>
+                    ) : key === 'coverage' ? (
+                      <select
+                        value={value as string}
+                        onChange={(e) => setPromptArguments(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value="basic">Basic</option>
+                        <option value="comprehensive">Comprehensive</option>
+                        <option value="edge-cases">Edge Cases</option>
+                      </select>
+                    ) : key === 'urgency' ? (
+                      <select
+                        value={value as string}
+                        onChange={(e) => setPromptArguments(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="critical">Critical</option>
+                      </select>
+                    ) : key === 'environment' ? (
+                      <select
+                        value={value as string}
+                        onChange={(e) => setPromptArguments(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        {selectedPrompt === 'infrastructure_audit' ? (
+                          <>
+                            <option value="dev">Development</option>
+                            <option value="staging">Staging</option>
+                            <option value="prod">Production</option>
+                            <option value="all">All Environments</option>
+                          </>
+                        ) : (
+                          <>
+                            <option value="development">Development</option>
+                            <option value="staging">Staging</option>
+                            <option value="production">Production</option>
+                          </>
+                        )}
+                      </select>
+                    ) : key === 'audience' ? (
+                      <select
+                        value={value as string}
+                        onChange={(e) => setPromptArguments(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value="technical">Technical</option>
+                        <option value="business">Business</option>
+                        <option value="general">General</option>
+                        <option value="academic">Academic</option>
+                      </select>
+                    ) : key === 'purpose' ? (
+                      <select
+                        value={value as string}
+                        onChange={(e) => setPromptArguments(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value="exploration">Exploration</option>
+                        <option value="presentation">Presentation</option>
+                        <option value="dashboard">Dashboard</option>
+                        <option value="report">Report</option>
+                      </select>
+                    ) : key === 'systemType' ? (
+                      <select
+                        value={value as string}
+                        onChange={(e) => setPromptArguments(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value="dashboard">Dashboard</option>
+                        <option value="reports">Reports</option>
+                        <option value="etl">ETL</option>
+                        <option value="database">Database</option>
+                        <option value="api">API</option>
+                      </select>
+                    ) : key === 'timeframe' ? (
+                      <select
+                        value={value as string}
+                        onChange={(e) => setPromptArguments(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        {selectedPrompt === 'infrastructure_audit' ? (
+                          <>
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                            <option value="quarterly">Quarterly</option>
+                            <option value="annual">Annual</option>
+                          </>
+                        ) : (
+                          <>
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                            <option value="quarterly">Quarterly</option>
+                          </>
+                        )}
+                      </select>
+                    ) : key === 'stakeholders' ? (
+                      <select
+                        value={value as string}
+                        onChange={(e) => setPromptArguments(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value="technical">Technical</option>
+                        <option value="business">Business</option>
+                        <option value="mixed">Mixed</option>
+                      </select>
+                    ) : key === 'targetEnvironment' ? (
+                      <select
+                        value={value as string}
+                        onChange={(e) => setPromptArguments(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value="dev">Development</option>
+                        <option value="staging">Staging</option>
+                        <option value="prod">Production</option>
+                      </select>
+                    ) : key === 'deploymentType' ? (
+                      <select
+                        value={value as string}
+                        onChange={(e) => setPromptArguments(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value="feature">Feature</option>
+                        <option value="hotfix">Hotfix</option>
+                        <option value="major">Major</option>
+                        <option value="rollback">Rollback</option>
+                      </select>
+                    ) : key === 'auditScope' ? (
+                      <select
+                        value={value as string}
+                        onChange={(e) => setPromptArguments(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value="security">Security</option>
+                        <option value="performance">Performance</option>
+                        <option value="compliance">Compliance</option>
+                        <option value="comprehensive">Comprehensive</option>
+                      </select>
+                    ) : key === 'audienceLevel' ? (
+                      <select
+                        value={value as string}
+                        onChange={(e) => setPromptArguments(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                      </select>
+                    ) : key === 'format' ? (
+                      <select
+                        value={value as string}
+                        onChange={(e) => setPromptArguments(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value="tutorial">Tutorial</option>
+                        <option value="reference">Reference</option>
+                        <option value="overview">Overview</option>
+                        <option value="deep-dive">Deep Dive</option>
+                      </select>
+                    ) : key === 'currentLevel' ? (
+                      <select
+                        value={value as string}
+                        onChange={(e) => setPromptArguments(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value="complete-beginner">Complete Beginner</option>
+                        <option value="some-experience">Some Experience</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                      </select>
+                    ) : key === 'learningGoal' ? (
+                      <select
+                        value={value as string}
+                        onChange={(e) => setPromptArguments(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value="foundational">Foundational</option>
+                        <option value="professional">Professional</option>
+                        <option value="expert">Expert</option>
+                        <option value="teaching">Teaching</option>
+                      </select>
+                    ) : key === 'timeCommitment' ? (
+                      <select
+                        value={value as string}
+                        onChange={(e) => setPromptArguments(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value="casual">Casual</option>
+                        <option value="regular">Regular</option>
+                        <option value="intensive">Intensive</option>
+                        <option value="immersive">Immersive</option>
+                      </select>
+                    ) : key === 'learningStyle' ? (
+                      <select
+                        value={value as string}
+                        onChange={(e) => setPromptArguments(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value="theoretical">Theoretical</option>
+                        <option value="practical">Practical</option>
+                        <option value="project-based">Project Based</option>
+                        <option value="mixed">Mixed</option>
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        value={value as string}
+                        onChange={(e) => setPromptArguments(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        placeholder={`Enter ${key.replace(/([A-Z])/g, ' $1').toLowerCase()}...`}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+              
+              <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
+                <button
+                  onClick={closePromptModal}
+                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={executePromptWithArgs}
+                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                >
+                  Get Prompt
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

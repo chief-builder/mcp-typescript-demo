@@ -679,6 +679,94 @@ Long-running operations send progress notifications:
 #### Sampling Capability
 All servers include sampling capability for LLM-powered responses and AI assistance integrated with the MCP sampling interface.
 
+#### Completion Support
+The dev-tools server implements completion support for parameter suggestions:
+```json
+// Request
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "completion/complete",
+  "params": {
+    "ref": {
+      "type": "ref/tool",
+      "name": "format_code"
+    },
+    "argument": {
+      "name": "language",
+      "value": "ja"
+    }
+  }
+}
+
+// Response
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "completion": {
+      "values": ["java", "javascript"],
+      "total": 2,
+      "hasMore": false
+    }
+  }
+}
+```
+
+**Supported Completions:**
+- `format_code` tool: Language parameter suggestions
+- `generate_documentation` tool: Language and style parameter suggestions
+- `interactive_code_review` tool: Language parameter suggestions
+
+#### Pagination Support
+List operations support pagination using cursor-based navigation:
+```json
+// Request with pagination
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/list",
+  "params": {
+    "cursor": "eyJvZmZzZXQiOjEwfQ=="  // Base64 encoded cursor
+  }
+}
+
+// Response with next cursor
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "tools": [...],
+    "nextCursor": "eyJvZmZzZXQiOjIwfQ=="
+  }
+}
+```
+
+**Pagination Details:**
+- Default page size: 10 items
+- Cursor contains offset information
+- `nextCursor` is null when no more items
+- Supported on: `tools/list`, `resources/list`, `prompts/list`
+
+#### Cancellation Handling
+Servers support cancellation notifications for long-running operations:
+```json
+// Cancellation notification from client
+{
+  "jsonrpc": "2.0",
+  "method": "notifications/cancelled",
+  "params": {
+    "requestId": "operation-123"
+  }
+}
+```
+
+**Cancellation Support:**
+- Long-running tool executions can be cancelled
+- Progress tracking operations respect cancellation
+- Servers clean up resources on cancellation
+- Particularly useful for: `bulk_knowledge_processing`, `process_large_dataset`, `deploy_multi_service`
+
 ### Logging
 All servers support structured logging with configurable levels:
 - `debug`: Detailed debugging information

@@ -683,16 +683,254 @@ pnpm dev
 # Should start on http://localhost:5174
 ```
 
-**Expected Results:**
-- [ ] Vite dev server starts
-- [ ] Browser opens to http://localhost:5174
-- [ ] Chat interface loads
+**Prerequisites:**
+- [ ] Chat server must be running (from Test 3.4):
+  ```bash
+  cd packages/servers/chat-server && pnpm dev
+  # Should be running on http://localhost:4000
+  ```
+- [ ] At least one MCP server should be running in HTTP mode for tool integration
 
-**Test Chat Operations:**
-1. Select LLM provider (Claude/OpenAI)
-2. Enter chat message
-3. View response
-4. Test elicitation features
+**Expected Results:**
+- [ ] Vite dev server starts successfully
+- [ ] Browser opens to http://localhost:5174
+- [ ] Chat interface loads with "AI Chat" title
+- [ ] Connection status shows "Connected to chat server" with green checkmark
+- [ ] Initial welcome message from Claude assistant appears
+
+**Test Chat Interface (Complete Checklist):**
+
+#### 1. Initial Interface Verification
+- [ ] **Header Section**:
+  - "AI Chat" title with bot icon
+  - "MCP Development Tools" subtitle with wrench icon
+  - Connection status indicator (green checkmark + "Connected to chat server")
+- [ ] **Input Area**:
+  - Provider dropdown shows "Claude" by default
+  - "Enable streaming" checkbox is checked
+  - Text area with placeholder "Ask Claude to help with development tasks..."
+
+- [ ] **Welcome Message**:
+  - Assistant message with bot avatar
+  - Content: "Hello! I'm ready to assist you with development tools through MCP..."
+  - Timestamp displayed
+  - Provider badge showing "claude" with brain icon
+
+#### 2. Provider Selection Testing
+- [ ] **Provider Dropdown**:
+  - Located in bottom-left of input area
+  - Shows current provider (Claude) with brain icon
+  - Click dropdown to see available providers
+  - Provider count displayed at bottom: "X providers available"
+
+- [ ] **Provider Switching**:
+  - If multiple providers available, test switching between them
+  - System message appears: "Switched to [PROVIDER] provider"
+  - Provider icon updates in subsequent messages
+  - If only Claude available, dropdown should be disabled
+
+#### 3. Streaming Configuration
+- [ ] **Streaming Toggle**:
+  - Checkbox labeled "Enable streaming" in bottom-right
+  - Default state: checked (enabled)
+  - Toggle on/off functionality works
+  - Setting persists during chat session
+
+#### 4. Basic Chat Operations
+- [ ] **Send Message**:
+  - Type message in textarea: "Hello, can you help me format some code?"
+  - Press Enter or click "Send" button
+  - Message appears in chat with user avatar (blue background)
+  - Timestamp shows current time
+
+- [ ] **Receive Response**:
+  - Loading indicator appears: "Claude is thinking..." with spinner
+  - If streaming enabled: text appears word-by-word with blinking cursor
+  - If streaming disabled: complete response appears at once
+  - Final message shows timestamp and provider badge
+
+#### 5. MCP Tool Integration Testing
+
+**IMPORTANT:** Both Claude and OpenAI should now properly execute MCP tools when streaming is enabled. Test both providers thoroughly to ensure tool integration is working correctly.
+
+**5.1 Claude Provider Testing**
+- [ ] **Initial Setup**:
+  - Ensure Claude is selected in provider dropdown
+  - Verify streaming is enabled (checkbox checked)
+  - Confirm dev-tools server is running on port 3001
+
+- [ ] **Basic Tool Execution (Claude)**:
+  - Send message: "please format this code: function hello(name){console.log('Hello '+name+'!')}"
+  - Expected streaming behavior:
+    - Message starts streaming immediately
+    - Look for "[Executing tool: format_code...]" indicator
+    - Formatted code result should appear:
+      ```javascript
+      function hello(name) {
+        console.log('Hello ' + name + '!');
+      }
+      ```
+  - Tool execution should happen automatically
+
+- [ ] **Multiple Tool Usage (Claude)**:
+  - Send: "Read the package.json file and tell me the project name"
+  - Should execute read_file tool
+  - Response includes actual package.json content
+  - Project name extracted and mentioned
+
+- [ ] **Tool Chaining (Claude)**:
+  - Send: "List all TypeScript files in packages/servers and count them"
+  - Should execute list_project_files tool
+  - Response lists files and provides count
+  - Verify accuracy against actual file system
+
+**5.2 OpenAI Provider Testing**
+- [ ] **Provider Switch to OpenAI**:
+  - Click provider dropdown and select "OpenAI" 
+  - Verify "Switched to OPENAI provider" message appears
+  - Provider icon changes to sparkles icon
+
+- [ ] **Basic Tool Execution (OpenAI)**:
+  - Send same message: "please format this code: function hello(name){console.log('Hello '+name+'!')}"
+  - Expected streaming behavior:
+    - Similar to Claude: "[Executing tool: format_code...]" appears
+    - Formatted code streams in with proper formatting
+    - Should produce identical formatted output
+
+- [ ] **Complex Tool Request (OpenAI)**:
+  - Send: "Analyze the project structure and create a summary of all server packages"
+  - Should execute multiple tools:
+    - list_project_files to find servers
+    - Potentially read_file for package.json files
+  - Response provides structured summary
+
+**5.3 Comparative Testing**
+- [ ] **Same Request, Different Providers**:
+  - Test identical requests on both providers
+  - Compare tool execution speed
+  - Verify both produce correct results
+  - Note any behavioral differences
+
+- [ ] **Streaming Behavior Comparison**:
+  - Claude with streaming: smooth text flow with tool execution
+  - OpenAI with streaming: similar smooth flow
+  - Both should show tool execution indicators
+
+- [ ] **Non-Streaming Mode**:
+  - Disable streaming for both providers
+  - Send tool requests
+  - Complete responses appear at once
+  - Tools still execute properly (no streaming doesn't mean no tools)
+
+**5.4 Advanced Tool Testing**
+- [ ] **File Operations (Both Providers)**:
+  - "Read the README.md file and summarize it"
+  - "Find all test files in the project"
+  - "Show me the contents of the main server file"
+
+- [ ] **Code Analysis (Both Providers)**:
+  - "Format this messy JavaScript: var x=1;function test(){return x+2;}"
+  - "List all the tools available in the dev-tools server"
+  - "Read a TypeScript file and explain what it does"
+
+- [ ] **Error Handling**:
+  - "Read a non-existent file: /fake/path/file.txt"
+  - Should handle gracefully with error message
+  - "Format invalid code: function {{{"
+  - Should report formatting error
+
+**5.5 Tool Execution Indicators**
+- [ ] **Visual Feedback**:
+  - Both providers show "[Executing tool: ...]" messages
+  - Tool names clearly identified
+  - Progress indication during execution
+  - Clear separation between tool output and assistant commentary
+
+**5.6 Performance Testing**
+- [ ] **Response Times**:
+  - Claude tool execution: typically 1-3 seconds
+  - OpenAI tool execution: typically 1-3 seconds
+  - Streaming should begin within 1 second
+  - Complete tool results within 5 seconds
+
+**Expected Tool Integration Behavior:**
+- Both Claude and OpenAI now execute tools directly
+- Tool execution is automatic based on user requests
+- Results are integrated into the assistant's response
+- Streaming shows real-time execution progress
+- Error handling is graceful and informative
+
+#### 6. Elicitation Feature Testing
+- [ ] **Interactive Tools**:
+  - Send message: "Perform an interactive code review on this function"
+  - Elicitation modal should appear (if supported by backend)
+  - Modal shows "Input Requested" with form fields
+  - Form includes required/optional fields with validation
+  - Accept/Decline/Cancel buttons available
+
+- [ ] **Elicitation Modal Features**:
+  - Form validation for required fields (red highlighting)
+  - Dropdown selections for enum values
+  - Checkbox inputs for boolean fields
+  - Number inputs with min/max validation
+  - Submit button shows loading state during submission
+
+#### 7. Error Handling
+- [ ] **Connection Errors**:
+  - Stop chat server temporarily
+  - Interface shows "Disconnected from chat server" with gray icon
+  - Warning message: "⚠️ Chat server is not available..."
+  - Send button becomes disabled
+  - Input area shows appropriate disabled state
+
+- [ ] **Message Errors**:
+  - Test with malformed requests
+  - Error messages appear with red background
+  - Assistant avatar shows red background for errors
+  - Error details included in message
+
+#### 8. UI Responsiveness
+- [ ] **Layout and Interaction**:
+  - Messages scroll automatically to bottom
+  - Chat history preserved during session
+  - Textarea resizes appropriately (2 rows default)
+  - Send button provides visual feedback (disabled/loading states)
+  - Keyboard shortcuts work (Enter to send, Shift+Enter for new line)
+
+#### 9. Message Features
+- [ ] **Message Display**:
+  - User messages: blue background, right-aligned, user avatar
+  - Assistant messages: white background, left-aligned, bot avatar
+  - Timestamps in consistent format (HH:MM:SS)
+  - Provider attribution for assistant messages
+  - Streaming cursor animation during real-time responses
+
+#### 10. Advanced Features
+- [ ] **Streaming Behavior**:
+  - Enable streaming and send long request
+  - Watch text appear character by character
+  - Blinking cursor visible during streaming
+  - UI remains responsive during streaming
+  - Can type new message while receiving response
+
+- [ ] **Multi-turn Conversation**:
+  - Send follow-up questions
+  - Context maintained across messages
+  - Tool usage persists through conversation
+  - Provider switching affects new messages only
+
+**Test Chat Server Endpoints:**
+- [ ] Health check: `curl http://localhost:4000/health`
+- [ ] Providers list: `curl http://localhost:4000/providers`
+- [ ] Chat endpoint functional through UI
+- [ ] Elicitation polling functional (background requests)
+
+**Performance Expectations:**
+- [ ] Initial page load under 3 seconds
+- [ ] Message sending/receiving under 5 seconds
+- [ ] Provider switching under 2 seconds
+- [ ] Smooth scrolling and animations
+- [ ] No memory leaks during extended use
 
 **Status:** ✅ Pass / ❌ Fail  
 **Notes:** _______________
@@ -765,9 +1003,306 @@ function test(){console.log("hello world");}
 
 ---
 
-## 🧪 Phase 6: Advanced Feature Testing
+## 🔌 Phase 6: VSCode Extension Testing
 
-### Test 6.1: Progress Notifications
+### Test 6.1: Extension Installation and Activation
+
+**Prerequisites:**
+- [ ] VSCode installed (version 1.93.0 or later)
+- [ ] All MCP servers running in HTTP mode:
+  ```bash
+  # Terminal 1
+  cd packages/servers/dev-tools && pnpm start -- --http
+  
+  # Terminal 2  
+  cd packages/servers/analytics && pnpm start -- --http
+  
+  # Terminal 3
+  cd packages/servers/cloud-ops && pnpm start -- --http
+  
+  # Terminal 4
+  cd packages/servers/knowledge && pnpm start -- --http
+  ```
+
+**Build and Installation Steps:**
+```bash
+# Navigate to VSCode extension directory
+cd packages/apps/vscode-ext
+
+# Install dependencies and build
+pnpm install
+pnpm compile
+
+# Package the extension
+npx vsce package --no-dependencies
+
+# Install in VSCode via UI:
+# 1. Open VSCode
+# 2. Open Command Palette (Cmd/Ctrl+Shift+P)
+# 3. Run "Extensions: Install from VSIX..."
+# 4. Select the mcp-demo-vscode-1.0.0.vsix file
+# 5. Reload VSCode when prompted
+```
+
+**Expected Results:**
+- [ ] Extension packages successfully as mcp-demo-vscode-1.0.0.vsix
+- [ ] Extension installs without errors
+- [ ] "MCP Demo Extension" appears in installed extensions list
+- [ ] VSCode reloads with extension active
+- [ ] "MCP Demo Extension activated" message in output console
+
+**Status:** ✅ Pass / ❌ Fail  
+**Notes:** _______________
+
+### Test 6.2: Extension UI Verification
+
+**Activity Bar Icon:**
+- [ ] New "MCP Demo" icon appears in activity bar (left sidebar)
+- [ ] Icon shows server-environment icon
+- [ ] Click opens MCP views panel
+
+**Tree Views Verification:**
+- [ ] "MCP SERVERS" view shows with refresh button
+- [ ] Lists all 4 servers:
+  - Development Tools Server (Port: 3001)
+  - Data Analytics Server (Port: 3002)
+  - Cloud Operations Server (Port: 3003)
+  - Knowledge Base Server (Port: 3004)
+- [ ] Each server shows "Connect" button when disconnected
+- [ ] "SERVER CAPABILITIES" view appears (empty initially)
+
+**Status Bar:**
+- [ ] MCP status item appears in bottom-right status bar
+- [ ] Shows "MCP: Not connected" initially
+- [ ] Shows server icon
+
+**Command Palette Testing:**
+- [ ] Open Command Palette (Cmd/Ctrl+Shift+P)
+- [ ] Search for "MCP Demo" shows these commands:
+  - MCP Demo: Connect to Server
+  - MCP Demo: Disconnect from Server
+  - MCP Demo: Show Server Capabilities
+  - MCP Demo: Execute MCP Tool
+  - MCP Demo: View MCP Resources
+  - MCP Demo: Refresh MCP Servers
+
+**Output Channel:**
+- [ ] "MCP Demo Extension" output channel created
+- [ ] Shows extension activation message
+- [ ] View via View → Output → Select "MCP Demo Extension"
+
+**Status:** ✅ Pass / ❌ Fail  
+**Notes:** _______________
+
+### Test 6.3: Server Connection
+
+**Connect via Tree View:**
+- [ ] Click "Connect" button next to "Development Tools Server" in MCP SERVERS view
+- [ ] Output channel shows connection logs:
+  ```
+  Attempting to connect to server: dev-tools
+  [ServerManager] Connecting to: http://localhost:3001/mcp
+  [ServerManager] Sending initialize request...
+  [ServerManager] Got session ID: [uuid]
+  [ServerManager] Successfully connected to dev-tools
+  ```
+- [ ] Server status changes to "Connected" with green checkmark
+- [ ] "Disconnect" button appears (red)
+- [ ] Status bar updates to "MCP: 1 connected"
+
+**Connect via Command Palette:**
+- [ ] Execute "MCP Demo: Connect to Server" command
+- [ ] Quick pick shows disconnected servers
+- [ ] Select server shows description and port info
+- [ ] Connection succeeds with info notification
+
+**Connection Details in Output:**
+- [ ] Session ID displayed
+- [ ] Protocol version confirmed (2025-06-18)
+- [ ] Server capabilities loaded
+- [ ] Tools, resources, and prompts count displayed
+
+**Status:** ✅ Pass / ❌ Fail  
+**Notes:** _______________
+
+### Test 6.4: Server Capabilities View
+
+**After Server Connection:**
+- [ ] SERVER CAPABILITIES view auto-populates
+- [ ] Shows connected server name as root (e.g., "Development Tools Server")
+- [ ] Expandable sections appear:
+  - Tools (6)
+  - Resources (4)
+  - Prompts (3)
+
+**Tools Section:**
+- [ ] Expand "Tools (6)" shows all dev-tools:
+  - format_code - Format code using Prettier
+  - list_project_files - List source code files
+  - read_file - Read file contents
+  - interactive_code_review - Interactive review
+  - generate_documentation - Generate docs
+  - scan_project - Scan project files
+- [ ] Each tool shows icon and description
+- [ ] Click tool name opens configuration dialog
+
+**Resources Section:**
+- [ ] Expand "Resources (4)" shows:
+  - project_config (devtools://config/project)
+  - test_reports (devtools://reports/testing)
+  - build_configs (devtools://config/build)
+  - code_metrics (devtools://metrics/code-quality)
+- [ ] Each shows URI as description
+
+**Prompts Section:**
+- [ ] Expand "Prompts (3)" shows:
+  - code_review - Code review assistant
+  - debug_session - Debug assistant
+  - test_strategy - Test planner
+- [ ] Each shows description
+
+**Multi-Server Display:**
+- [ ] Connect to second server (Analytics)
+- [ ] Capabilities view shows both servers
+- [ ] Each server section expandable independently
+- [ ] Status bar shows "MCP: 2 connected"
+
+**Status:** ✅ Pass / ❌ Fail  
+**Notes:** _______________
+
+### Test 6.5: Tool Execution
+
+**Execute format_code Tool via Click:**
+- [ ] Click on "format_code" tool in capabilities tree
+- [ ] Input dialog appears for each parameter:
+  - "Enter value for code (required)"
+  - "Enter value for language (required)"
+- [ ] Enter test code: `function test(){return 1;}`
+- [ ] Select language from dropdown: "javascript"
+- [ ] Output channel shows:
+  ```
+  Executing tool format_code with args: {
+    "code": "function test(){return 1;}",
+    "language": "javascript"
+  }
+  [ServerManager] Tool execution response: {...}
+  Tool format_code executed successfully
+  ```
+- [ ] New editor tab opens with formatted result:
+  ```javascript
+  function test() {
+    return 1;
+  }
+  ```
+
+**Execute Tool with Command Palette:**
+- [ ] Run "MCP Demo: Execute MCP Tool" command
+- [ ] Select server from quick pick
+- [ ] Select tool from list
+- [ ] Enter parameters when prompted
+- [ ] Result displayed in new editor tab
+
+**Tool Parameter Handling:**
+- [ ] Required fields show "(required)" in prompt
+- [ ] Empty required fields show validation error
+- [ ] Optional fields can be left empty
+- [ ] Arrays/objects accept JSON format
+- [ ] Numbers properly converted from string
+- [ ] Booleans accept true/false
+
+**Error Handling:**
+- [ ] Invalid parameters show error notification
+- [ ] Tool execution errors displayed in output
+- [ ] Extension remains stable after errors
+
+**Status:** ✅ Pass / ❌ Fail  
+**Notes:** _______________
+
+### Test 6.6: Resource Reading
+
+**Read Resource from Tree:**
+- [ ] Expand Resources in CAPABILITIES view
+- [ ] Right-click on "project_config"
+- [ ] Select "Read" from context menu
+- [ ] Resource content displays in new editor tab
+- [ ] Content formatted properly
+
+**Status:** ✅ Pass / ❌ Fail  
+**Notes:** _______________
+
+### Test 6.7: Prompt Usage
+
+**Get Prompt from Tree:**
+- [ ] Expand Prompts in CAPABILITIES view
+- [ ] Right-click on "code_review"
+- [ ] Select "Get" from context menu
+- [ ] Enter arguments when prompted
+- [ ] Prompt template displays in new editor
+
+**Status:** ✅ Pass / ❌ Fail  
+**Notes:** _______________
+
+### Test 6.8: Multi-Server Management
+
+**Connect Multiple Servers:**
+- [ ] Connect to Analytics server
+- [ ] Both servers show in SERVERS tree
+- [ ] Status bar shows "MCP: 2 servers"
+- [ ] CAPABILITIES view updates with combined tools
+
+**Server Switching:**
+- [ ] Click on different server in tree
+- [ ] CAPABILITIES view filters to that server
+- [ ] Execute tools from specific server
+
+**Disconnect Server:**
+- [ ] Right-click server in tree
+- [ ] Select "Disconnect"
+- [ ] Server removed from tree
+- [ ] Status bar updates count
+
+**Status:** ✅ Pass / ❌ Fail  
+**Notes:** _______________
+
+### Test 6.9: Error Handling
+
+**Connection Failures:**
+- [ ] Stop a server process
+- [ ] Try to connect to stopped server
+- [ ] Error notification appears
+- [ ] Extension remains stable
+
+**Tool Execution Errors:**
+- [ ] Execute tool with invalid arguments
+- [ ] Error displays in output panel
+- [ ] Extension continues working
+
+**Status:** ✅ Pass / ❌ Fail  
+**Notes:** _______________
+
+### Test 6.10: Output and Logging
+
+**Output Panel:**
+- [ ] Execute "MCP: Show Logs" command
+- [ ] Output panel opens with "MCP Extension" channel
+- [ ] Shows connection logs
+- [ ] Shows tool execution logs
+- [ ] Shows error messages
+
+**Log Content Verification:**
+- [ ] Connection attempts logged
+- [ ] Tool executions logged with arguments
+- [ ] Errors logged with stack traces
+- [ ] Resource reads logged
+
+**Status:** ✅ Pass / ❌ Fail  
+**Notes:** _______________
+
+---
+
+## 🧪 Phase 7: VSCode Extension Advanced Features
+
+### Test 7.1: Progress Notifications
 
 **Using analytics server:**
 1. Execute 'process_large_dataset' tool
@@ -782,7 +1317,7 @@ function test(){console.log("hello world");}
 **Status:** ✅ Pass / ❌ Fail  
 **Notes:** _______________
 
-### Test 6.2: Elicitation Features
+### Test 7.2: Elicitation Features
 
 **Using knowledge server:**
 1. Execute 'interactive_knowledge_curator' tool
@@ -797,28 +1332,28 @@ function test(){console.log("hello world");}
 **Status:** ✅ Pass / ❌ Fail  
 **Notes:** _______________
 
-### Test 6.3: Error Handling
+### Test 7.3: Subscription and Real-time Updates
 
-**Test various error scenarios:**
-1. Invalid tool parameters
-2. Non-existent resources
-3. Server connection failures
-4. Malformed requests
+**Test resource subscriptions:**
+1. Connect to knowledge server
+2. Subscribe to resource updates
+3. Trigger resource changes
+4. Monitor real-time updates
 
 **Expected Results:**
-- [ ] Proper error responses
-- [ ] Error codes as per MCP spec
-- [ ] User-friendly error messages
-- [ ] No server crashes
+- [ ] Resource subscription successful
+- [ ] Real-time updates received
+- [ ] UI updates with changes
+- [ ] Unsubscribe works properly
 
 **Status:** ✅ Pass / ❌ Fail  
 **Notes:** _______________
 
 ---
 
-## 🔍 Phase 7: Documentation & Usability Testing
+## 🔍 Phase 8: Documentation & Usability Testing
 
-### Test 7.1: Documentation Links
+### Test 8.1: Documentation Links
 1. Check all links in README.md
 2. Verify architecture diagrams load
 3. Test tutorial instructions
@@ -833,7 +1368,7 @@ function test(){console.log("hello world");}
 **Status:** ✅ Pass / ❌ Fail  
 **Notes:** _______________
 
-### Test 7.2: Tutorial Walkthrough
+### Test 8.2: Tutorial Walkthrough
 
 **Follow Tutorial 1: Getting Started**
 1. Complete environment setup
@@ -851,9 +1386,9 @@ function test(){console.log("hello world");}
 
 ---
 
-## 🚀 Phase 8: Production Readiness Testing
+## 🚀 Phase 9: Production Readiness Testing
 
-### Test 8.1: Performance Testing
+### Test 9.1: Performance Testing
 ```bash
 # Run multiple concurrent connections
 # Monitor resource usage
@@ -868,7 +1403,7 @@ function test(){console.log("hello world");}
 **Status:** ✅ Pass / ❌ Fail  
 **Notes:** _______________
 
-### Test 8.2: Security Testing
+### Test 9.2: Security Testing
 ```bash
 # Test input validation
 # Check path traversal protection
@@ -908,13 +1443,18 @@ function test(){console.log("hello world");}
 | 5 | Demo script | ⏳ | |
 | 5 | E2E tool execution | ⏳ | |
 | 5 | Resource subscriptions | ⏳ | |
-| 6 | Progress notifications | ⏳ | |
-| 6 | Elicitation | ⏳ | |
-| 6 | Error handling | ⏳ | |
-| 7 | Documentation | ⏳ | |
-| 7 | Tutorials | ⏳ | |
-| 8 | Performance | ⏳ | |
-| 8 | Security | ⏳ | |
+| 6 | VSCode Extension Install | ⏳ | |
+| 6 | VSCode UI Components | ⏳ | |
+| 6 | VSCode Server Connections | ⏳ | |
+| 6 | VSCode Tool Execution | ⏳ | |
+| 6 | VSCode Multi-server | ⏳ | |
+| 7 | VSCode Progress notifications | ⏳ | |
+| 7 | VSCode Elicitation | ⏳ | |
+| 7 | VSCode Subscriptions | ⏳ | |
+| 8 | Documentation | ⏳ | |
+| 8 | Tutorials | ⏳ | |
+| 9 | Performance | ⏳ | |
+| 9 | Security | ⏳ | |
 
 ### Critical Issues Found
 - [ ] None

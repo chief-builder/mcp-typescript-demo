@@ -31,6 +31,7 @@ function createMCPServer(): { mcpServer: McpServer, baseServer: any } {
     capabilities: { 
       logging: {},
       elicitation: {},
+      completion: {},
       prompts: {
         listChanged: true
       },
@@ -1596,6 +1597,131 @@ function formatAnalysisReport(analysis: any): string {
   return report;
 }
 */
+
+  /**
+   * Register completion handler for tool arguments
+   * 
+   * NOTE: Commented out temporarily as custom request handlers require proper
+   * schema definitions. In production, you would define a proper Zod schema
+   * for the completion request.
+   */
+  /*
+  (baseServer as any).setRequestHandler(
+    'completion/complete',
+    async (request: any) => {
+      const { ref } = request.params;
+      logger.info('Handling completion request', { ref });
+
+      // Handle tool argument completions
+      if (ref.type === 'ref/tool') {
+        const toolName = ref.name;
+        const argumentName = request.params.argument?.name;
+        
+        logger.info(`Providing completion for tool: ${toolName}, argument: ${argumentName}`);
+
+        switch (toolName) {
+          case 'analyze_csv':
+            if (argumentName === 'analysisType') {
+              return {
+                completion: {
+                  values: [
+                    { value: 'summary', description: 'Basic statistical summary' },
+                    { value: 'correlation', description: 'Correlation analysis' },
+                    { value: 'distribution', description: 'Distribution analysis' },
+                    { value: 'trends', description: 'Trend analysis' },
+                  ],
+                  hasMore: false,
+                },
+              };
+            }
+            break;
+
+          case 'generate_sample_data':
+            if (argumentName === 'dataType') {
+              return {
+                completion: {
+                  values: [
+                    { value: 'sales', description: 'Sales transaction data' },
+                    { value: 'timeseries', description: 'Time series data' },
+                    { value: 'survey', description: 'Survey response data' },
+                    { value: 'financial', description: 'Financial metrics data' },
+                    { value: 'demographic', description: 'Demographic data' },
+                  ],
+                  hasMore: false,
+                },
+              };
+            }
+            break;
+
+          case 'calculate_statistics':
+            if (argumentName === 'operation') {
+              return {
+                completion: {
+                  values: [
+                    { value: 'mean', description: 'Calculate mean/average' },
+                    { value: 'median', description: 'Calculate median' },
+                    { value: 'mode', description: 'Calculate mode' },
+                    { value: 'std', description: 'Calculate standard deviation' },
+                    { value: 'var', description: 'Calculate variance' },
+                    { value: 'min', description: 'Find minimum value' },
+                    { value: 'max', description: 'Find maximum value' },
+                    { value: 'sum', description: 'Calculate sum' },
+                    { value: 'count', description: 'Count values' },
+                    { value: 'percentile', description: 'Calculate percentile' },
+                  ],
+                  hasMore: false,
+                },
+              };
+            }
+            break;
+
+          case 'export_data':
+            if (argumentName === 'format') {
+              return {
+                completion: {
+                  values: [
+                    { value: 'csv', description: 'Comma-separated values' },
+                    { value: 'json', description: 'JavaScript Object Notation' },
+                    { value: 'excel', description: 'Microsoft Excel format' },
+                    { value: 'parquet', description: 'Apache Parquet format' },
+                    { value: 'html', description: 'HTML table format' },
+                  ],
+                  hasMore: false,
+                },
+              };
+            }
+            break;
+
+          case 'process_large_dataset':
+            if (argumentName === 'operation') {
+              return {
+                completion: {
+                  values: [
+                    { value: 'aggregate', description: 'Aggregate data by groups' },
+                    { value: 'filter', description: 'Filter data by conditions' },
+                    { value: 'transform', description: 'Transform columns' },
+                    { value: 'join', description: 'Join with other datasets' },
+                    { value: 'pivot', description: 'Pivot table operations' },
+                    { value: 'sample', description: 'Sample dataset' },
+                  ],
+                  hasMore: false,
+                },
+              };
+            }
+            break;
+        }
+      }
+
+      // Default empty completion if no specific suggestions
+      return {
+        completion: {
+          values: [],
+          hasMore: false,
+        },
+      };
+    }
+  );
+  */
 
   return { mcpServer: server, baseServer };
 }

@@ -130,6 +130,18 @@ export abstract class LLMProvider {
   ): AsyncIterable<StreamingChunk>;
 
   /**
+   * Generate a chat completion with full message history
+   * Optional method - providers can implement if they support it
+   */
+  chatCompletion?(options: ChatCompletionOptions): Promise<CompletionResponse>;
+
+  /**
+   * Generate a streaming chat completion with full message history
+   * Optional method - providers can implement if they support it
+   */
+  chatCompletionStream?(options: ChatCompletionOptions): AsyncIterable<StreamingChunk>;
+
+  /**
    * Execute a tool call (if supported)
    */
   abstract callTool?(

@@ -13,8 +13,8 @@ This project demonstrates a complete MCP ecosystem following the client-host-ser
   - Cloud Operations (port 3003)
   - Knowledge Base (port 3004)
 - **1 MCP Client Server**: Chat Server (port 4000) - bridges multiple MCP servers
-- **4 Client Applications**: Desktop GUI, CLI, Web, and Enhanced Claude Chat UI
-- **3 Integrated Applications**: VSCode Extension, Data Science Notebook, DevOps Dashboard
+- **5 Client Applications**: Desktop GUI, CLI, Web, Enhanced Claude Chat UI, and VSCode Extension
+- **2 Integrated Applications**: Data Science Notebook, DevOps Dashboard
 
 ### Protocol Implementation
 Built on **JSON-RPC 2.0** with support for:
@@ -54,6 +54,7 @@ graph TB
         CLI[CLI Client]
         Web[Web Client]
         Claude[Claude Chat UI]
+        VSCode[VSCode Extension]
     end
 
     subgraph MCPServers ["MCP Servers"]
@@ -71,6 +72,10 @@ graph TB
     CLI -->|JSON-RPC over HTTP| Analytics
     Web -->|JSON-RPC over HTTP| CloudOps
     Claude -->|HTTP REST API| ChatServer
+    VSCode -->|JSON-RPC over HTTP| DevTools
+    VSCode -->|JSON-RPC over HTTP| Analytics
+    VSCode -->|JSON-RPC over HTTP| CloudOps
+    VSCode -->|JSON-RPC over HTTP| Knowledge
     
     ChatServer -->|JSON-RPC over HTTP| DevTools
     ChatServer -->|JSON-RPC over HTTP| Analytics
@@ -155,6 +160,13 @@ pnpm dev
 # Enhanced Claude Chat UI
 cd packages/clients/claude-chat
 pnpm dev
+
+# VSCode Extension
+cd packages/apps/vscode-ext
+pnpm install
+pnpm compile
+npx vsce package --no-dependencies
+# Install the generated .vsix file in VSCode
 ```
 
 ## 📚 Features Demonstrated
@@ -185,7 +197,9 @@ pnpm dev
 - ✅ **Advanced Features**:
   - Elicitation for interactive user input
   - Sampling for LLM content generation
-  - Completion support for argument suggestions
+  - Completion support for argument suggestions (dev-tools server)
+  - Pagination for list operations (with cursor support)
+  - Cancellation notification handling
 
 ### Client Features
 - ✅ **Roots**: Secure file system access boundaries
@@ -199,6 +213,7 @@ pnpm dev
 - **Tools**: `format-code`, `list-files`, `read-file`, `scan-project`
 - **Resources**: `project-structure`, `recent-changes`
 - **Advanced**: Interactive code review, documentation generation
+- **Features**: Argument completion support for language parameters
 
 #### analytics-server (Port 3002)
 - **Tools**: `calculate-statistics`, `generate-sample-data`, `export-data`
@@ -217,8 +232,17 @@ pnpm dev
 
 #### chat-server (Port 4000)
 - **Unique Role**: Acts as MCP client, not traditional server
-- **Features**: Multi-provider LLM support (Claude, OpenAI)
+- **Features**: Multi-provider LLM support (Claude, OpenAI) with streaming tool execution
 - **Purpose**: Bridges multiple MCP servers for chat applications
+- **Fixed**: OpenAI streaming now properly executes MCP tools
+
+### VSCode Extension
+- **Visual Interface**: Tree views for servers and capabilities
+- **Server Management**: Connect to multiple servers simultaneously
+- **Tool Execution**: Execute tools with parameter forms
+- **Resource Viewer**: Read and display resource content
+- **Status Integration**: Real-time connection status in status bar
+- **Command Palette**: Full command integration for all operations
 
 ## 🛠️ Development
 

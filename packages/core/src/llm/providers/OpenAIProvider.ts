@@ -152,7 +152,7 @@ export class OpenAIProvider extends LLMProvider {
     yield* this.chatCompletionStream({ messages, ...options });
   }
 
-  async chatCompletion(options: ChatCompletionOptions): Promise<CompletionResponse> {
+  override async chatCompletion(options: ChatCompletionOptions): Promise<CompletionResponse> {
     const requestBody = this.buildRequestBody(options);
     
     try {
@@ -185,7 +185,7 @@ export class OpenAIProvider extends LLMProvider {
     }
   }
 
-  async *chatCompletionStream(options: ChatCompletionOptions): AsyncIterable<StreamingChunk> {
+  override async *chatCompletionStream(options: ChatCompletionOptions): AsyncIterable<StreamingChunk> {
     const requestBody = { ...this.buildRequestBody(options), stream: true };
     
     try {
@@ -303,7 +303,16 @@ export class OpenAIProvider extends LLMProvider {
         role: msg.role,
         content: msg.content,
         ...(msg.name && { name: msg.name }),
-        ...(msg.toolCalls && { tool_calls: msg.toolCalls }),
+        ...(msg.toolCalls && { 
+          tool_calls: msg.toolCalls.map(tc => ({
+            id: tc.id,
+            type: 'function',
+            function: {
+              name: tc.name,
+              arguments: JSON.stringify(tc.arguments)
+            }
+          }))
+        }),
         ...(msg.toolCallId && { tool_call_id: msg.toolCallId })
       })),
       max_tokens: otherOptions.maxTokens || 4096,
@@ -355,6 +364,11 @@ export class OpenAIProvider extends LLMProvider {
   private parseStreamingChunk(data: any): StreamingChunk | null {
     const choice = data.choices?.[0];
     const delta = choice?.delta;
+    
+    // Log raw chunk for debugging
+    if (delta?.tool_calls || choice?.finish_reason === 'tool_calls') {
+      console.log('OpenAI streaming chunk:', JSON.stringify(data, null, 2));
+    }
 
     if (delta?.content) {
       return {
@@ -363,11 +377,14 @@ export class OpenAIProvider extends LLMProvider {
     }
 
     if (delta?.tool_calls) {
+      // Log the raw delta for debugging
+      console.log('OpenAI delta.tool_calls:', JSON.stringify(delta.tool_calls, null, 2));
+      
       return {
         toolCalls: delta.tool_calls.map((tc: any) => ({
           id: tc.id,
           name: tc.function?.name,
-          arguments: tc.function?.arguments ? JSON.parse(tc.function.arguments) : undefined
+          arguments: tc.function?.arguments || undefined
         }))
       };
     }

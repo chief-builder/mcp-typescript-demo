@@ -33,6 +33,7 @@ function createMCPServer(): { mcpServer: McpServer, baseServer: any, notifyResou
     capabilities: { 
       logging: {},
       elicitation: {},
+      completion: {},
       prompts: {
         listChanged: true
       },
@@ -2355,6 +2356,132 @@ Please search the knowledge base for relevant information about "${subject}" and
       };
     }
   });
+  */
+
+  /**
+   * Register completion handler for tool arguments
+   * 
+   * NOTE: Commented out temporarily as custom request handlers require proper
+   * schema definitions. In production, you would define a proper Zod schema
+   * for the completion request.
+   */
+  /*
+  (baseServer as any).setRequestHandler(
+    'completion/complete',
+    async (request: any) => {
+      const { ref } = request.params;
+      logger.info('Handling completion request', { ref });
+
+      // Handle tool argument completions
+      if (ref.type === 'ref/tool') {
+        const toolName = ref.name;
+        const argumentName = request.params.argument?.name;
+        
+        logger.info(`Providing completion for tool: ${toolName}, argument: ${argumentName}`);
+
+        switch (toolName) {
+          case 'search_documents':
+            if (argumentName === 'category') {
+              return {
+                completion: {
+                  values: [
+                    { value: 'api', description: 'API documentation' },
+                    { value: 'best-practices', description: 'Best practices' },
+                    { value: 'tutorial', description: 'Tutorials' },
+                    { value: 'troubleshooting', description: 'Troubleshooting guides' },
+                    { value: 'reference', description: 'Reference materials' },
+                  ],
+                  hasMore: false,
+                },
+              };
+            } else if (argumentName === 'sortBy') {
+              return {
+                completion: {
+                  values: [
+                    { value: 'relevance', description: 'Sort by relevance' },
+                    { value: 'date', description: 'Sort by date' },
+                    { value: 'title', description: 'Sort by title' },
+                    { value: 'views', description: 'Sort by view count' },
+                  ],
+                  hasMore: false,
+                },
+              };
+            }
+            break;
+
+          case 'create_document':
+            if (argumentName === 'category') {
+              return {
+                completion: {
+                  values: [
+                    { value: 'api', description: 'API documentation' },
+                    { value: 'best-practices', description: 'Best practices' },
+                    { value: 'tutorial', description: 'Tutorials' },
+                    { value: 'troubleshooting', description: 'Troubleshooting guides' },
+                    { value: 'reference', description: 'Reference materials' },
+                  ],
+                  hasMore: false,
+                },
+              };
+            }
+            break;
+
+          case 'bulk_knowledge_processing':
+            if (argumentName === 'operation') {
+              return {
+                completion: {
+                  values: [
+                    { value: 'import', description: 'Import documents from files' },
+                    { value: 'export', description: 'Export documents to files' },
+                    { value: 'update-metadata', description: 'Update document metadata' },
+                    { value: 'categorize', description: 'Auto-categorize documents' },
+                    { value: 'validate', description: 'Validate document structure' },
+                  ],
+                  hasMore: false,
+                },
+              };
+            } else if (argumentName === 'format') {
+              return {
+                completion: {
+                  values: [
+                    { value: 'json', description: 'JSON format' },
+                    { value: 'markdown', description: 'Markdown format' },
+                    { value: 'yaml', description: 'YAML format' },
+                    { value: 'csv', description: 'CSV format' },
+                  ],
+                  hasMore: false,
+                },
+              };
+            }
+            break;
+
+          case 'interactive_knowledge_curator':
+            if (argumentName === 'mode') {
+              return {
+                completion: {
+                  values: [
+                    { value: 'review', description: 'Review existing documents' },
+                    { value: 'organize', description: 'Organize and categorize' },
+                    { value: 'enhance', description: 'Enhance document quality' },
+                    { value: 'merge', description: 'Merge related documents' },
+                  ],
+                  hasMore: false,
+                },
+              };
+            }
+            break;
+        }
+      }
+
+      // Default empty completion if no specific suggestions
+      return {
+        completion: {
+          values: [],
+          hasMore: false,
+        },
+      };
+    }
+  );
   */
 
   return { mcpServer: server, baseServer, notifyResourceSubscribers };

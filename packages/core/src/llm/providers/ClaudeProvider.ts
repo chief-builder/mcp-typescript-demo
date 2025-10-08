@@ -135,7 +135,7 @@ export class ClaudeProvider extends LLMProvider {
     yield* this.chatCompletionStream({ messages, ...options });
   }
 
-  async chatCompletion(options: ChatCompletionOptions): Promise<CompletionResponse> {
+  override async chatCompletion(options: ChatCompletionOptions): Promise<CompletionResponse> {
     const requestBody = this.buildRequestBody(options);
     
     try {
@@ -169,7 +169,7 @@ export class ClaudeProvider extends LLMProvider {
     }
   }
 
-  async *chatCompletionStream(options: ChatCompletionOptions): AsyncIterable<StreamingChunk> {
+  override async *chatCompletionStream(options: ChatCompletionOptions): AsyncIterable<StreamingChunk> {
     const requestBody = { ...this.buildRequestBody(options), stream: true };
     
     try {

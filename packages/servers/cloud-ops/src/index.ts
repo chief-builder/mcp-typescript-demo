@@ -61,6 +61,7 @@ function createMCPServer(): { mcpServer: McpServer, baseServer: any } {
     capabilities: { 
       logging: {},
       elicitation: {},
+      completion: {},
       prompts: {
         listChanged: true
       },
@@ -1985,6 +1986,181 @@ Please provide a comprehensive audit assessment with specific findings, recommen
     };
   }
 );
+
+  /**
+   * Register completion handler for tool arguments
+   * 
+   * NOTE: Commented out temporarily as custom request handlers require proper
+   * schema definitions. In production, you would define a proper Zod schema
+   * for the completion request.
+   */
+  /*
+  (baseServer as any).setRequestHandler(
+    'completion/complete',
+    async (request: any) => {
+      const { ref } = request.params;
+      logger.info('Handling completion request', { ref });
+
+      // Handle tool argument completions
+      if (ref.type === 'ref/tool') {
+        const toolName = ref.name;
+        const argumentName = request.params.argument?.name;
+        
+        logger.info(`Providing completion for tool: ${toolName}, argument: ${argumentName}`);
+
+        switch (toolName) {
+          case 'check_service_health':
+            if (argumentName === 'serviceName') {
+              return {
+                completion: {
+                  values: mockServices.map(s => ({ 
+                    value: s.name, 
+                    description: `Status: ${s.status}, Uptime: ${s.uptime}%` 
+                  })),
+                  hasMore: false,
+                },
+              };
+            }
+            break;
+
+          case 'deploy_service':
+            if (argumentName === 'environment') {
+              return {
+                completion: {
+                  values: [
+                    { value: 'dev', description: 'Development environment' },
+                    { value: 'staging', description: 'Staging environment' },
+                    { value: 'prod', description: 'Production environment' },
+                  ],
+                  hasMore: false,
+                },
+              };
+            } else if (argumentName === 'strategy') {
+              return {
+                completion: {
+                  values: [
+                    { value: 'rolling', description: 'Rolling deployment with zero downtime' },
+                    { value: 'blue-green', description: 'Blue-green deployment' },
+                    { value: 'canary', description: 'Canary deployment with gradual rollout' },
+                    { value: 'recreate', description: 'Recreate deployment (with downtime)' },
+                  ],
+                  hasMore: false,
+                },
+              };
+            }
+            break;
+
+          case 'get_system_metrics':
+            if (argumentName === 'metricType') {
+              return {
+                completion: {
+                  values: [
+                    { value: 'cpu', description: 'CPU usage metrics' },
+                    { value: 'memory', description: 'Memory usage metrics' },
+                    { value: 'network', description: 'Network I/O metrics' },
+                    { value: 'disk', description: 'Disk usage metrics' },
+                    { value: 'all', description: 'All system metrics' },
+                  ],
+                  hasMore: false,
+                },
+              };
+            } else if (argumentName === 'timeRange') {
+              return {
+                completion: {
+                  values: [
+                    { value: '1h', description: 'Last hour' },
+                    { value: '6h', description: 'Last 6 hours' },
+                    { value: '24h', description: 'Last 24 hours' },
+                    { value: '7d', description: 'Last 7 days' },
+                    { value: '30d', description: 'Last 30 days' },
+                  ],
+                  hasMore: false,
+                },
+              };
+            }
+            break;
+
+          case 'scale_service':
+            if (argumentName === 'serviceName') {
+              return {
+                completion: {
+                  values: mockServices.map(s => ({ 
+                    value: s.name, 
+                    description: `Current CPU: ${s.cpu}%, Memory: ${s.memory}%` 
+                  })),
+                  hasMore: false,
+                },
+              };
+            } else if (argumentName === 'scaleType') {
+              return {
+                completion: {
+                  values: [
+                    { value: 'horizontal', description: 'Add/remove instances' },
+                    { value: 'vertical', description: 'Increase/decrease resources' },
+                  ],
+                  hasMore: false,
+                },
+              };
+            }
+            break;
+
+          case 'manage_alerts':
+            if (argumentName === 'action') {
+              return {
+                completion: {
+                  values: [
+                    { value: 'create', description: 'Create new alert rule' },
+                    { value: 'list', description: 'List all alerts' },
+                    { value: 'disable', description: 'Disable alert' },
+                    { value: 'enable', description: 'Enable alert' },
+                    { value: 'delete', description: 'Delete alert' },
+                  ],
+                  hasMore: false,
+                },
+              };
+            } else if (argumentName === 'alertType') {
+              return {
+                completion: {
+                  values: [
+                    { value: 'cpu', description: 'CPU usage alert' },
+                    { value: 'memory', description: 'Memory usage alert' },
+                    { value: 'error-rate', description: 'Error rate alert' },
+                    { value: 'response-time', description: 'Response time alert' },
+                    { value: 'custom', description: 'Custom metric alert' },
+                  ],
+                  hasMore: false,
+                },
+              };
+            }
+            break;
+
+          case 'deploy_multi_service':
+            if (argumentName === 'environment') {
+              return {
+                completion: {
+                  values: [
+                    { value: 'dev', description: 'Development environment' },
+                    { value: 'staging', description: 'Staging environment' },
+                    { value: 'prod', description: 'Production environment' },
+                  ],
+                  hasMore: false,
+                },
+              };
+            }
+            break;
+        }
+      }
+
+      // Default empty completion if no specific suggestions
+      return {
+        completion: {
+          values: [],
+          hasMore: false,
+        },
+      };
+    }
+  );
+  */
 
   return { mcpServer: server, baseServer };
 }

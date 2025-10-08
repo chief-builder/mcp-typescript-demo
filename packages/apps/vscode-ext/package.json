@@ -1,0 +1,165 @@
+{
+  "name": "mcp-demo-vscode",
+  "displayName": "MCP Demo Extension",
+  "description": "VSCode extension for Model Context Protocol (MCP) demo servers",
+  "version": "1.0.0",
+  "publisher": "mcp-demo",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/mcp-typescript-demo"
+  },
+  "engines": {
+    "vscode": "^1.93.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "llm"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "mcp-demo.connectServer",
+        "title": "Connect to MCP Server",
+        "category": "MCP"
+      },
+      {
+        "command": "mcp-demo.disconnectServer",
+        "title": "Disconnect from MCP Server",
+        "category": "MCP"
+      },
+      {
+        "command": "mcp-demo.showServerCapabilities",
+        "title": "Show Server Capabilities",
+        "category": "MCP"
+      },
+      {
+        "command": "mcp-demo.executeTool",
+        "title": "Execute MCP Tool",
+        "category": "MCP"
+      },
+      {
+        "command": "mcp-demo.viewResources",
+        "title": "View MCP Resources",
+        "category": "MCP"
+      },
+      {
+        "command": "mcp-demo.refreshServers",
+        "title": "Refresh MCP Servers",
+        "category": "MCP",
+        "icon": "$(refresh)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "mcp-demo",
+          "title": "MCP Demo",
+          "icon": "$(server-environment)"
+        }
+      ]
+    },
+    "views": {
+      "mcp-demo": [
+        {
+          "id": "mcp-demo.servers",
+          "name": "MCP Servers",
+          "icon": "$(server)",
+          "contextualTitle": "MCP Demo Servers"
+        },
+        {
+          "id": "mcp-demo.capabilities",
+          "name": "Server Capabilities",
+          "icon": "$(tools)",
+          "contextualTitle": "MCP Server Capabilities",
+          "when": "mcp-demo.hasActiveServer"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "mcp-demo.refreshServers",
+          "when": "view == mcp-demo.servers",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "mcp-demo.connectServer",
+          "when": "view == mcp-demo.servers && viewItem == disconnectedServer",
+          "group": "inline"
+        },
+        {
+          "command": "mcp-demo.disconnectServer",
+          "when": "view == mcp-demo.servers && viewItem == connectedServer",
+          "group": "inline"
+        },
+        {
+          "command": "mcp-demo.executeTool",
+          "when": "view == mcp-demo.capabilities && viewItem == tool",
+          "group": "inline"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "MCP Demo",
+      "properties": {
+        "mcp-demo.autoConnect": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically connect to all available MCP servers on startup"
+        },
+        "mcp-demo.defaultTransport": {
+          "type": "string",
+          "enum": [
+            "stdio",
+            "http"
+          ],
+          "default": "http",
+          "description": "Default transport method for MCP servers"
+        },
+        "mcp-demo.httpTimeout": {
+          "type": "number",
+          "default": 30000,
+          "description": "HTTP request timeout in milliseconds"
+        },
+        "mcp-demo.showNotifications": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show notifications for MCP server events"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile",
+    "test": "node ./dist/test/runTest.js",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "20.x",
+    "@types/vscode": "^1.93.0",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0",
+    "@vscode/test-electron": "^2.3.9",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3",
+    "vsce": "^2.15.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0"
+  }
+}

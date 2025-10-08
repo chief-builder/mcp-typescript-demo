@@ -1863,7 +1863,8 @@ async function startHttpServer() {
       // Handle the request with the transport
       await transport.handleRequest(req, res, req.body);
     } catch (error) {
-      logger.error('Error handling MCP request:', error);
+      logger.error('Error handling MCP request:', error instanceof Error ? error.message : String(error));
+      logger.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       if (!res.headersSent) {
         res.status(500).json({
           jsonrpc: '2.0',

@@ -17,17 +17,17 @@ The complete MCP ecosystem showing all components and their relationships:
 
 ```mermaid
 graph TB
-    subgraph HostApps ["Host Applications"]
-        VSCode[VSCode Extension]
-        Notebook[Data Science Notebook]
-        DevOps[DevOps Dashboard]
-    end
-
     subgraph MCPClients ["MCP Clients"]
         Desktop["Desktop Client<br/>Electron"]
         CLI["CLI Client<br/>Terminal"]
         Web["Web Client<br/>Browser"]
         Claude["Claude Chat UI<br/>React"]
+        VSCode["VSCode Extension<br/>TypeScript"]
+    end
+
+    subgraph HostApps ["Host Applications (Planned)"]
+        Notebook[Data Science Notebook]
+        DevOps[DevOps Dashboard]
     end
 
     subgraph MCPServers ["MCP Servers"]
@@ -46,8 +46,7 @@ graph TB
         LLM2[OpenAI API]
     end
 
-    %% Host to Client connections
-    VSCode -.->|embeds| CLI
+    %% Host to Client connections (Planned)
     Notebook -.->|embeds| Web
     DevOps -.->|embeds| Desktop
 
@@ -57,6 +56,12 @@ graph TB
     CLI -->|JSON-RPC/HTTP| CloudOps
     Web -->|JSON-RPC/HTTP| Knowledge
     Claude -->|JSON/HTTP| ChatServer
+    
+    %% VSCode Extension connections
+    VSCode -->|JSON-RPC/HTTP| DevTools
+    VSCode -->|JSON-RPC/HTTP| Analytics
+    VSCode -->|JSON-RPC/HTTP| CloudOps
+    VSCode -->|JSON-RPC/HTTP| Knowledge
 
     %% Chat Server as Client connections
     ChatServer -->|JSON-RPC/HTTP| DevTools
@@ -469,6 +474,79 @@ flowchart TD
     end
 ```
 
+### Completion Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    participant CompletionEngine
+    
+    Note over Client,CompletionEngine: Argument Completion
+    Client->>Server: completion/complete request
+    Note right of Client: { ref: {type: "ref/tool",<br/>name: "format_code"},<br/>argument: {name: "language",<br/>value: "ja"} }
+    
+    Server->>CompletionEngine: Find matching values
+    CompletionEngine-->>Server: Filtered results
+    
+    Server-->>Client: Completion response
+    Note left of Server: { completion: {<br/>values: ["java", "javascript"],<br/>total: 2,<br/>hasMore: false } }
+```
+
+### Pagination Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    participant DataStore
+    
+    Note over Client,DataStore: List with Pagination
+    Client->>Server: tools/list request
+    Note right of Client: { cursor: null }
+    
+    Server->>DataStore: Query items (offset: 0, limit: 10)
+    DataStore-->>Server: Items 1-10 of 25 total
+    
+    Server-->>Client: Response with cursor
+    Note left of Server: { tools: [...],<br/>nextCursor: "eyJvZmZzZXQiOjEwfQ==" }
+    
+    Client->>Server: tools/list request
+    Note right of Client: { cursor: "eyJvZmZzZXQiOjEwfQ==" }
+    
+    Server->>DataStore: Query items (offset: 10, limit: 10)
+    DataStore-->>Server: Items 11-20 of 25 total
+    
+    Server-->>Client: Response with cursor
+    Note left of Server: { tools: [...],<br/>nextCursor: "eyJvZmZzZXQiOjIwfQ==" }
+```
+
+### Cancellation Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    participant LongOperation
+    
+    Note over Client,LongOperation: Cancellable Operation
+    Client->>Server: tools/call request
+    Note right of Client: { id: "op-123",<br/>name: "process_large_dataset" }
+    
+    Server->>LongOperation: Start processing
+    LongOperation-->>Client: Progress notification (10%)
+    LongOperation-->>Client: Progress notification (20%)
+    
+    Client->>Server: notifications/cancelled
+    Note right of Client: { requestId: "op-123" }
+    
+    Server->>LongOperation: Cancel operation
+    LongOperation-->>Server: Cleanup complete
+    
+    Server-->>Client: Error response
+    Note left of Server: { error: {<br/>code: -32001,<br/>message: "Operation cancelled" } }
+```
+
 ## Message Types Overview
 
 Quick reference for MCP message types:
@@ -659,6 +737,105 @@ flowchart LR
     end
 ```
 
+## VSCode Extension Architecture
+
+The VSCode extension acts as a full MCP client with visual interface:
+
+```mermaid
+graph TD
+    subgraph "VSCode Extension"
+        Activate[Extension Activation]
+        
+        subgraph "UI Components"
+            ActivityBar[Activity Bar Icon]
+            TreeViews[Tree Views]
+            StatusBar[Status Bar Item]
+            Commands[Command Palette]
+            OutputChannel[Output Channel]
+        end
+        
+        subgraph "Core Services"
+            ServerManager[Server Manager]
+            ConfigLoader[Configuration Loader]
+            ConnectionPool[Connection Pool]
+        end
+        
+        subgraph "Tree Providers"
+            ServerTree[MCP Servers Tree]
+            CapabilityTree[Capabilities Tree]
+        end
+        
+        subgraph "MCP Client"
+            HTTPTransport[HTTP Transport]
+            SessionManager[Session Manager]
+            RequestHandler[Request Handler]
+        end
+    end
+    
+    subgraph "MCP Servers"
+        Server1[dev-tools-server]
+        Server2[analytics-server]
+        Server3[cloud-ops-server]
+        Server4[knowledge-server]
+    end
+    
+    Activate --> ConfigLoader
+    ConfigLoader --> ServerManager
+    
+    ActivityBar --> TreeViews
+    TreeViews --> ServerTree
+    TreeViews --> CapabilityTree
+    
+    Commands --> ServerManager
+    ServerTree --> ServerManager
+    CapabilityTree --> ServerManager
+    
+    ServerManager --> ConnectionPool
+    ConnectionPool --> HTTPTransport
+    HTTPTransport --> SessionManager
+    SessionManager --> RequestHandler
+    
+    RequestHandler --> Server1
+    RequestHandler --> Server2
+    RequestHandler --> Server3
+    RequestHandler --> Server4
+    
+    StatusBar -.-> ServerManager
+    OutputChannel -.-> ServerManager
+```
+
+### Extension Lifecycle
+
+```mermaid
+sequenceDiagram
+    participant VSCode
+    participant Extension
+    participant ServerManager
+    participant MCPServer
+    
+    VSCode->>Extension: Activate extension
+    Extension->>Extension: Load configuration
+    Extension->>ServerManager: Initialize
+    
+    Note over ServerManager: Discover servers
+    ServerManager-->>Extension: Servers found
+    
+    Extension->>VSCode: Register views
+    Extension->>VSCode: Register commands
+    Extension->>VSCode: Show status bar
+    
+    Note over VSCode,MCPServer: User connects to server
+    VSCode->>Extension: Execute connect command
+    Extension->>ServerManager: Connect to server
+    ServerManager->>MCPServer: HTTP POST /mcp (initialize)
+    MCPServer-->>ServerManager: Session ID + capabilities
+    ServerManager->>MCPServer: initialized notification
+    
+    ServerManager-->>Extension: Connection success
+    Extension->>VSCode: Update tree views
+    Extension->>VSCode: Update status bar
+```
+
 ## Summary
 
 These diagrams illustrate the key architectural concepts of the MCP TypeScript demo:
@@ -669,5 +846,9 @@ These diagrams illustrate the key architectural concepts of the MCP TypeScript d
 4. **Security Layers**: Multiple levels of validation and access control
 5. **Scalable Design**: Session-based HTTP allows multiple concurrent clients
 6. **Clear Separation**: The chat-server demonstrates how to build MCP clients that aggregate multiple servers
+7. **VSCode Integration**: Full-featured extension acts as native MCP client with visual UI
+8. **Advanced Features**: Completion support, pagination, and cancellation handling
+9. **Real-time Updates**: Progress notifications and resource subscriptions
+10. **Extensible Design**: Easy to add new servers, clients, and capabilities
 
-The architecture enables building powerful AI-integrated applications while maintaining security, modularity, and extensibility.
+The architecture enables building powerful AI-integrated applications while maintaining security, modularity, and extensibility. The VSCode extension demonstrates how to create rich development experiences on top of the MCP protocol.

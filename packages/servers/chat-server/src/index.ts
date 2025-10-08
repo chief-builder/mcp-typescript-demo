@@ -9,9 +9,10 @@ import { CreateMessageRequestSchema, ElicitRequestSchema } from '@modelcontextpr
 import { 
   Logger,
   LLMProviderManager,
+  StreamingChunk,
   Message as LLMMessage,
   ChatCompletionOptions,
-  StreamingChunk
+  ToolCall
 } from '@mcp-demo/core';
 
 const logger = new Logger('chat-server');
@@ -201,7 +202,8 @@ class EnhancedChatService {
       
       logger.info('Successfully connected to dev-tools server with sampling and elicitation support');
     } catch (error) {
-      logger.error('Failed to connect to dev-tools server:', error);
+      logger.error('Failed to connect to dev-tools server:', error instanceof Error ? error.message : String(error));
+      logger.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
       throw error;
     }
   }
@@ -280,44 +282,21 @@ class EnhancedChatService {
     }
   }
 
-  // New streaming chat method using LLM providers
+  // Enhanced streaming chat method with tool execution support
   async *chatStream(userMessage: string, provider?: string): AsyncIterable<StreamingChunk> {
     try {
-      logger.info('Processing streaming chat request:', userMessage);
-
-      // Get available tools from dev-tools server
-      const tools = await this.getAvailableTools();
+      logger.info('Processing streaming chat request with tool support:', userMessage);
 
       const selectedProvider = provider || this.currentProvider;
+      
+      // Check if provider supports chat completion streaming
       const llmProvider = this.llmManager.getProvider(selectedProvider);
-      
-      // Convert MCP tools to LLM tool format
-      const llmTools = tools.map(tool => ({
-        name: tool.name,
-        description: tool.description,
-        parameters: tool.input_schema
-      }));
-
-      // For streaming, we need to use the simpler stream interface
-      const streamOptions = {
-        tools: llmTools,
-        maxTokens: 4096,
-        model: selectedProvider === 'openai' ? 'gpt-4o-mini' : 'claude-3-5-sonnet-20241022'
-      };
-
-      // Stream the response
-      yield* llmProvider.stream(userMessage, streamOptions);
-      
-    } catch (error) {
-      logger.error('Streaming chat processing failed:', error);
-      throw error;
-    }
-  }
-
-  // Enhanced chat method with provider selection
-  async chat(userMessage: string, provider?: string): Promise<string> {
-    try {
-      logger.info('Processing chat request:', userMessage);
+      if (!llmProvider.chatCompletionStream) {
+        // Fall back to simple streaming without tool execution
+        logger.warn(`Provider ${selectedProvider} doesn't support chatCompletionStream, falling back to simple streaming`);
+        yield* this.simpleStream(userMessage, selectedProvider);
+        return;
+      }
 
       // Get available tools from dev-tools server
       const tools = await this.getAvailableTools();
@@ -328,9 +307,6 @@ class EnhancedChatService {
           content: userMessage
         }
       ];
-
-      const selectedProvider = provider || this.currentProvider;
-      const llmProvider = this.llmManager.getProvider(selectedProvider);
       
       // Convert MCP tools to LLM tool format
       const llmTools = tools.map(tool => ({
@@ -339,22 +315,407 @@ class EnhancedChatService {
         parameters: tool.input_schema
       }));
 
-      const chatOptions: ChatCompletionOptions = {
-        messages,
-        tools: llmTools,
-        maxTokens: 4096,
-        model: selectedProvider === 'openai' ? 'gpt-4o-mini' : 'claude-3-5-sonnet-20241022'
-      };
+      // Tool execution loop for streaming
+      while (true) {
+        const chatOptions: ChatCompletionOptions = {
+          messages,
+          tools: llmTools,
+          maxTokens: 4096,
+          model: selectedProvider === 'openai' ? 'gpt-4o-mini' : 'claude-3-5-sonnet-20241022'
+        };
 
-      // Use direct LLM provider for completion
-      // Tool calling is handled separately through MCP tool integration
-      const response = await llmProvider.complete(userMessage, chatOptions);
+        // Accumulate tool calls from streaming chunks
+        let accumulatedContent = '';
+        let accumulatedToolCalls: ToolCall[] = [];
+        let finishReason: string | undefined;
+        let hasYieldedContent = false;
+        
+        // Stream the response
+        for await (const chunk of llmProvider.chatCompletionStream(chatOptions)) {
+          // Yield content chunks to client immediately
+          if (chunk.content) {
+            accumulatedContent += chunk.content;
+            hasYieldedContent = true;
+            yield chunk;
+          }
+          
+          // Accumulate tool calls
+          if (chunk.toolCalls) {
+            logger.info('Received tool call chunk:', JSON.stringify(chunk.toolCalls));
+            // Handle partial tool calls in streaming
+            for (const partialToolCall of chunk.toolCalls) {
+              if (partialToolCall.id) {
+                // Find or create tool call
+                let toolCallIndex = accumulatedToolCalls.findIndex(tc => tc.id === partialToolCall.id);
+                
+                if (toolCallIndex === -1) {
+                  // New tool call
+                  accumulatedToolCalls.push({
+                    id: partialToolCall.id,
+                    name: partialToolCall.name || '',
+                    arguments: {}
+                  });
+                  toolCallIndex = accumulatedToolCalls.length - 1;
+                }
+                
+                // Update tool call info
+                const toolCall = accumulatedToolCalls[toolCallIndex];
+                if (toolCall && partialToolCall.name) {
+                  toolCall.name = partialToolCall.name;
+                  logger.info(`Updated tool call name: ${toolCall.name}`);
+                }
+                
+                // Handle arguments - OpenAI sends them as strings that need to be accumulated
+                if (toolCall && partialToolCall.arguments !== undefined) {
+                  if (selectedProvider === 'openai' && typeof partialToolCall.arguments === 'string') {
+                    // For OpenAI, accumulate argument strings
+                    // Use any casting for the temporary argumentsStr property
+                    const toolCallAny = toolCall as any;
+                    if (!toolCallAny.argumentsStr) {
+                      toolCallAny.argumentsStr = '';
+                    }
+                    toolCallAny.argumentsStr += partialToolCall.arguments;
+                    
+                    // Try to parse accumulated arguments on each chunk
+                    try {
+                      toolCall.arguments = JSON.parse(toolCallAny.argumentsStr);
+                      logger.info(`Parsed tool arguments for ${toolCall.name}:`, toolCall.arguments);
+                    } catch (e) {
+                      // Not complete JSON yet, keep accumulating
+                      logger.debug(`Accumulating args for ${toolCall.name}, current: ${toolCallAny.argumentsStr}`);
+                    }
+                  } else if (typeof partialToolCall.arguments === 'object') {
+                    // For Claude or parsed arguments
+                    Object.assign(toolCall.arguments, partialToolCall.arguments);
+                  }
+                }
+              }
+            }
+            
+            // Don't yield tool call chunks to client yet
+          }
+          
+          // Track finish reason
+          if (chunk.finishReason) {
+            finishReason = chunk.finishReason;
+            // Yield finish reason to client
+            yield chunk;
+          }
+        }
+
+        // Final parse of accumulated arguments for OpenAI (in case parsing failed during streaming)
+        if (selectedProvider === 'openai') {
+          for (const toolCall of accumulatedToolCalls) {
+            if ((toolCall as any).argumentsStr && Object.keys(toolCall.arguments).length === 0) {
+              try {
+                toolCall.arguments = JSON.parse((toolCall as any).argumentsStr);
+                delete (toolCall as any).argumentsStr;
+                logger.info(`Successfully parsed accumulated args for ${toolCall.name}:`, toolCall.arguments);
+              } catch (e) {
+                logger.error(`Failed to parse tool arguments for ${toolCall.name}:`, e);
+                logger.error(`Raw arguments string: "${(toolCall as any).argumentsStr}"`);
+                toolCall.arguments = {};
+              }
+            }
+          }
+        }
+
+        // Add assistant's response to conversation history
+        const assistantMessage: LLMMessage = {
+          role: 'assistant',
+          content: accumulatedContent
+        };
+        
+        if (accumulatedToolCalls.length > 0) {
+          assistantMessage.toolCalls = accumulatedToolCalls;
+        }
+        
+        messages.push(assistantMessage);
+
+        // Log accumulated state for debugging
+        logger.info('Streaming accumulation complete:', {
+          provider: selectedProvider,
+          hasContent: accumulatedContent.length > 0,
+          toolCallCount: accumulatedToolCalls.length,
+          toolCalls: accumulatedToolCalls.map(tc => ({ name: tc.name, hasArgs: Object.keys(tc.arguments).length > 0 })),
+          finishReason
+        });
+
+        // Check if we need to execute tools
+        if (accumulatedToolCalls.length > 0 && (finishReason === 'tool_calls' || selectedProvider === 'claude')) {
+          logger.info(`${selectedProvider} wants to use tools in streaming:`, accumulatedToolCalls.map(tc => tc.name));
+          logger.info('Tool calls with arguments:', accumulatedToolCalls.map(tc => ({ 
+            name: tc.name, 
+            args: tc.arguments,
+            hasArgs: Object.keys(tc.arguments).length > 0 
+          })));
+          
+          // Notify client that we're executing tools
+          if (hasYieldedContent) {
+            // Add a newline before tool results if we've already yielded content
+            yield { content: '\n\n' };
+          }
+          
+          // Execute all tool calls
+          for (const toolCall of accumulatedToolCalls) {
+            try {
+              logger.info(`Executing tool: ${toolCall.name} with args:`, toolCall.arguments);
+              
+              // Yield tool execution indicator
+              yield { content: `[Executing tool: ${toolCall.name}...]\n` };
+              
+              // For OpenAI with empty arguments, provide defaults based on context
+              let toolArgs = toolCall.arguments;
+              if (selectedProvider === 'openai' && Object.keys(toolArgs).length === 0) {
+                logger.warn(`Empty arguments for tool ${toolCall.name}, attempting to extract from context`);
+                
+                if (toolCall.name === 'format_code') {
+                  // Extract code from the user message - handle multiline code
+                  const codeMatch = userMessage.match(/format this code[:\s]*(.+)/is);
+                  if (codeMatch && codeMatch[1]) {
+                    toolArgs = {
+                      code: codeMatch[1].trim(),
+                      language: 'javascript'
+                    };
+                  }
+                } else if (toolCall.name === 'read_file') {
+                  // Extract file path from user message
+                  const pathMatch = userMessage.match(/read\s+(?:file\s+)?([\w\/.]+)/i);
+                  if (pathMatch && pathMatch[1]) {
+                    toolArgs = {
+                      path: pathMatch[1]
+                    };
+                  }
+                }
+              }
+              
+              logger.info(`Executing tool with final args:`, toolArgs);
+              
+              const toolResult = await this.executeToolCall(
+                toolCall.name,
+                toolArgs
+              );
+              
+              // Add tool result to messages
+              if (selectedProvider === 'openai') {
+                messages.push({
+                  role: 'tool',
+                  content: toolResult && typeof toolResult.content === 'string' 
+                    ? toolResult.content 
+                    : JSON.stringify(toolResult?.content || {}),
+                  toolCallId: toolCall.id
+                });
+              } else {
+                messages.push({
+                  role: 'user',
+                  content: JSON.stringify([{
+                    type: 'tool_result',
+                    tool_use_id: toolCall.id,
+                    content: toolResult.content,
+                    is_error: toolResult.isError
+                  }])
+                });
+              }
+            } catch (error) {
+              logger.error(`Tool execution failed for ${toolCall.name}:`, error);
+              
+              // Yield error indicator
+              yield { content: `[Tool execution failed: ${error}]\n` };
+              
+              if (selectedProvider === 'openai') {
+                messages.push({
+                  role: 'tool',
+                  content: `Tool execution failed: ${error}`,
+                  toolCallId: toolCall.id
+                });
+              } else {
+                messages.push({
+                  role: 'user',
+                  content: JSON.stringify([{
+                    type: 'tool_result',
+                    tool_use_id: toolCall.id,
+                    content: `Tool execution failed: ${error}`,
+                    is_error: true
+                  }])
+                });
+              }
+            }
+          }
+          
+          // Add separator before continuing
+          yield { content: '\n' };
+          
+          // Continue the loop to get the final response after tool execution
+          continue;
+        }
+        
+        // No tool calls or tools completed, we're done
+        logger.info('Streaming chat completed');
+        break;
+      }
       
-      logger.info('Chat completed');
+    } catch (error) {
+      logger.error('Streaming chat processing failed:', error);
+      throw error;
+    }
+  }
+
+  // Simple streaming fallback for providers without chatCompletionStream
+  private async *simpleStream(userMessage: string, provider: string): AsyncIterable<StreamingChunk> {
+    const llmProvider = this.llmManager.getProvider(provider);
+    
+    // Get available tools from dev-tools server
+    const tools = await this.getAvailableTools();
+    
+    // Convert MCP tools to LLM tool format
+    const llmTools = tools.map(tool => ({
+      name: tool.name,
+      description: tool.description,
+      parameters: tool.input_schema
+    }));
+
+    const streamOptions = {
+      tools: llmTools,
+      maxTokens: 4096,
+      model: provider === 'openai' ? 'gpt-4o-mini' : 'claude-3-5-sonnet-20241022'
+    };
+
+    // Stream the response without tool execution
+    yield* llmProvider.stream(userMessage, streamOptions);
+  }
+
+  // Enhanced chat method with provider selection using provider-specific implementations
+  async chat(userMessage: string, provider?: string): Promise<string> {
+    try {
+      logger.info('Processing chat request:', userMessage);
+      
+      const selectedProvider = provider || this.currentProvider;
+      
+      // For Claude, use the legacy implementation that has proper tool handling
+      if (selectedProvider === 'claude') {
+        return this.legacyChat(userMessage);
+      }
+      
+      // For OpenAI, implement tool handling directly
+      if (selectedProvider === 'openai') {
+        return this.openAIChat(userMessage);
+      }
+      
+      // For other providers, fall back to simple completion without tool execution
+      const llmProvider = this.llmManager.getProvider(selectedProvider);
+      const response = await llmProvider.complete(userMessage, { maxTokens: 4096 });
       return response.content;
       
     } catch (error) {
       logger.error('Chat processing failed:', error);
+      throw error;
+    }
+  }
+
+  // OpenAI-specific chat implementation with tool handling
+  private async openAIChat(userMessage: string): Promise<string> {
+    try {
+      logger.info('Processing OpenAI chat request:', userMessage);
+
+      // Get available tools from dev-tools server
+      const tools = await this.getAvailableTools();
+      
+      // We'll need to make direct API calls to OpenAI
+      const openaiApiKey = process.env.OPENAI_API_KEY;
+      if (!openaiApiKey) {
+        throw new Error('OPENAI_API_KEY not configured');
+      }
+
+      const messages: any[] = [
+        {
+          role: 'user',
+          content: userMessage
+        }
+      ];
+
+      // Convert MCP tools to OpenAI format
+      const openAITools = tools.map(tool => ({
+        type: 'function',
+        function: {
+          name: tool.name,
+          description: tool.description,
+          parameters: tool.input_schema
+        }
+      }));
+
+      // Tool execution loop
+      while (true) {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${openaiApiKey}`
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: messages,
+            tools: openAITools,
+            tool_choice: 'auto',
+            max_tokens: 4096
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const choice = data.choices[0];
+        const message = choice.message;
+
+        // Add assistant's response to conversation
+        messages.push(message);
+
+        // Check if OpenAI wants to use tools
+        if (message.tool_calls && message.tool_calls.length > 0) {
+          logger.info('OpenAI wants to use tools:', message.tool_calls.map((tc: any) => tc.function.name));
+          
+          // Execute all tool calls
+          for (const toolCall of message.tool_calls) {
+            try {
+              logger.info(`Executing tool: ${toolCall.function.name} with args:`, toolCall.function.arguments);
+              
+              const args = JSON.parse(toolCall.function.arguments);
+              const toolResult = await this.executeToolCall(
+                toolCall.function.name,
+                args
+              );
+              
+              // Add tool result as a tool message
+              messages.push({
+                role: 'tool',
+                content: toolResult && typeof toolResult.content === 'string' 
+                  ? toolResult.content 
+                  : JSON.stringify(toolResult?.content || {}),
+                tool_call_id: toolCall.id
+              });
+            } catch (error) {
+              logger.error(`Tool execution failed for ${toolCall.function.name}:`, error);
+              
+              // Add error result
+              messages.push({
+                role: 'tool',
+                content: `Tool execution failed: ${error}`,
+                tool_call_id: toolCall.id
+              });
+            }
+          }
+          
+          // Continue the loop to get the final response after tool execution
+          continue;
+        }
+        
+        // No tool calls, return the final response
+        logger.info('OpenAI chat completed');
+        return message.content || '';
+      }
+    } catch (error) {
+      logger.error('OpenAI chat processing failed:', error);
       throw error;
     }
   }
@@ -475,7 +836,8 @@ async function startServer() {
     try {
       await chatService.connectToDevTools();
     } catch (error) {
-      logger.error('Failed to initialize chat service:', error);
+      logger.error('Failed to initialize chat service:', error instanceof Error ? error.message : String(error));
+      logger.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
       process.exit(1);
     }
   } else {

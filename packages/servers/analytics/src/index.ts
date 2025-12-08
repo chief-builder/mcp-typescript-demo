@@ -1774,6 +1774,18 @@ async function startHttpServer() {
     res.json({ status: 'ok', server: 'analytics-server', version: '1.0.0' });
   });
 
+  // Server info endpoint
+  app.get('/', (_req, res) => {
+    res.json({
+      server: 'analytics-server',
+      version: '1.0.0',
+      description: 'MCP Analytics Server',
+      endpoints: ['/health', '/mcp', '/sse'],
+      protocol: 'MCP 2025-03-26',
+      capabilities: ['tools', 'resources', 'prompts', 'sampling', 'elicitation']
+    });
+  });
+
   // STREAMABLE HTTP TRANSPORT (PROTOCOL VERSION 2025-03-26)
   app.all('/mcp', async (req, res) => {
     logger.info(`Received ${req.method} request to /mcp`);

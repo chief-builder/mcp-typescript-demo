@@ -2535,6 +2535,18 @@ async function startHttpServer() {
     res.json({ status: 'ok', server: 'knowledge-server', version: '1.0.0' });
   });
 
+  // Server info endpoint
+  app.get('/', (_req, res) => {
+    res.json({
+      server: 'knowledge-server',
+      version: '1.0.0',
+      description: 'MCP Knowledge Base Server',
+      endpoints: ['/health', '/mcp', '/sse'],
+      protocol: 'MCP 2025-06-18',
+      capabilities: ['tools', 'resources', 'prompts', 'sampling', 'elicitation']
+    });
+  });
+
   // STREAMABLE HTTP TRANSPORT (PROTOCOL VERSION 2025-06-18)
   app.all('/mcp', async (req, res) => {
     logger.info(`Received ${req.method} request to /mcp`);

@@ -598,7 +598,7 @@ function createMCPServer(): { mcpServer: McpServer, baseServer: Server } {
               maxTokens: 1000,
               modelPreferences: {
                 hints: [{
-                  name: 'claude-3-5-sonnet-20241022'
+                  name: 'claude-3-5-haiku-20241022'
                 }]
               }
             };
@@ -621,7 +621,7 @@ function createMCPServer(): { mcpServer: McpServer, baseServer: Server } {
               maxTokens: 1000,
               modelPreferences: {
                 hints: [{
-                  name: 'claude-3-5-sonnet-20241022'
+                  name: 'claude-3-5-haiku-20241022'
                 }]
               }
             });
@@ -645,7 +645,7 @@ function createMCPServer(): { mcpServer: McpServer, baseServer: Server } {
                 style,
                 generatedAt: new Date().toISOString(),
                 method: 'real-mcp-sampling',
-                model: samplingResponse.model || 'claude-3-5-sonnet-20241022',
+                model: samplingResponse.model || 'claude-3-5-haiku-20241022',
               },
             };
           } catch (samplingError) {
@@ -754,7 +754,7 @@ console.log(areas);
                 style,
                 generatedAt: new Date().toISOString(),
                 method: 'fallback-simulation',
-                model: 'claude-3-5-sonnet-20241022',
+                model: 'claude-3-5-haiku-20241022',
               },
             };
           }

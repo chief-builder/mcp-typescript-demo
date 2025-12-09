@@ -249,9 +249,9 @@ class MCPClient {
       if (response.contents) {
         for (const content of response.contents) {
           console.log('\\n' + '='.repeat(50));
-          if (content.text) {
+          if ('text' in content && content.text) {
             console.log(content.text);
-          } else if (content.blob) {
+          } else if ('blob' in content && content.blob) {
             console.log(chalk.gray('Binary content (blob)'));
           }
         }

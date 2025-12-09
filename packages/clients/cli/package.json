@@ -13,7 +13,7 @@
     "dev": "tsx watch src/index.ts"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.18.1",
+    "@modelcontextprotocol/sdk": "^1.24.3",
     "@mcp-demo/core": "workspace:*",
     "commander": "^12.1.0",
     "inquirer": "^10.2.2",

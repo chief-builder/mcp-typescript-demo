@@ -351,6 +351,7 @@ function createMCPServer(): { mcpServer: McpServer, baseServer: Server } {
         const elicitationResult = await baseServer.elicitInput({
           message: `Please specify your code review preferences for this ${language} code`,
           requestedSchema: {
+            $schema: 'https://json-schema.org/draft/2020-12/schema',
             type: "object",
             properties: {
               reviewType: {

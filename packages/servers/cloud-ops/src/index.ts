@@ -374,6 +374,7 @@ server.registerTool(
       const deploymentConfig = await baseServer.elicitInput({
         message: `Planning deployment for service: ${serviceName}${currentVersion ? ` (current: ${currentVersion})` : ''}\n\nPlease configure your deployment strategy:`,
         requestedSchema: {
+          $schema: 'https://json-schema.org/draft/2020-12/schema',
           type: 'object',
           properties: {
             targetVersion: {

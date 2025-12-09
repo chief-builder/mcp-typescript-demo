@@ -328,6 +328,7 @@ server.registerTool(
       const analysisPrefs = await baseServer.elicitInput({
         message: `Starting data analysis for: ${dataPath}\n\nPlease configure your analysis preferences:`,
         requestedSchema: {
+          $schema: 'https://json-schema.org/draft/2020-12/schema',
           type: 'object',
           properties: {
             analysisType: {

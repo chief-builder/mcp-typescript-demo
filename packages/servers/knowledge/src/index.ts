@@ -944,6 +944,7 @@ server.registerTool(
         const userInput = await baseServer.elicitInput({
           message: `Quick Elicitation Test\n\nPlease fill in these simple fields:`,
           requestedSchema: {
+            $schema: 'https://json-schema.org/draft/2020-12/schema',
             type: 'object',
             properties: {
               name: {
@@ -1002,6 +1003,7 @@ server.registerTool(
         const userInput = await baseServer.elicitInput({
           message: `Complex Elicitation Test\n\nThis tests more field types and validation:`,
           requestedSchema: {
+            $schema: 'https://json-schema.org/draft/2020-12/schema',
             type: 'object',
             properties: {
               projectName: {
@@ -1107,6 +1109,7 @@ server.registerTool(
         const creationPrefs = await baseServer.elicitInput({
           message: `Creating new knowledge base content${initialTopic ? ` for topic: ${initialTopic}` : ''}\n\nPlease provide the document details:`,
           requestedSchema: {
+            $schema: 'https://json-schema.org/draft/2020-12/schema',
             type: 'object',
             properties: {
               title: {
@@ -1264,6 +1267,7 @@ server.registerTool(
         const orgPrefs = await baseServer.elicitInput({
           message: `Knowledge Base Organization Tool\n\nHelp organize and improve the knowledge base structure:`,
           requestedSchema: {
+            $schema: 'https://json-schema.org/draft/2020-12/schema',
             type: 'object',
             properties: {
               organizationGoal: {

@@ -74,6 +74,11 @@ function createMCPServer(): { mcpServer: McpServer, baseServer: Server } {
           .describe('Programming language'),
         filePath: z.string().optional().describe('Optional file path for config detection'),
       },
+      annotations: {
+        readOnlyHint: false,
+        idempotentHint: true,
+        destructiveHint: false,
+      },
     },
     async ({ code, language, filePath }) => {
       // Always log tool invocations for debugging and monitoring
@@ -174,6 +179,11 @@ function createMCPServer(): { mcpServer: McpServer, baseServer: Server } {
         maxDepth: z.number().min(1).max(10).default(5)
           .describe('Maximum directory depth to search'),
       },
+      annotations: {
+        readOnlyHint: true,
+        idempotentHint: true,
+        destructiveHint: false,
+      },
     },
     async ({ pattern, exclude, maxDepth }) => {
       logger.info('Listing project files', { pattern, exclude, maxDepth });
@@ -254,6 +264,11 @@ function createMCPServer(): { mcpServer: McpServer, baseServer: Server } {
           .describe('Maximum number of lines to read'),
         startLine: z.number().min(1).default(1)
           .describe('Starting line number (1-based)'),
+      },
+      annotations: {
+        readOnlyHint: true,
+        idempotentHint: true,
+        destructiveHint: false,
       },
     },
     async ({ filePath, maxLines, startLine }) => {
@@ -339,6 +354,11 @@ function createMCPServer(): { mcpServer: McpServer, baseServer: Server } {
         code: z.string().describe('Code to review'),
         language: z.enum(['typescript', 'javascript', 'python', 'java'])
           .describe('Programming language'),
+      },
+      annotations: {
+        readOnlyHint: true,
+        idempotentHint: true,
+        destructiveHint: false,
       },
     },
     async ({ code, language }) => {
@@ -560,6 +580,11 @@ function createMCPServer(): { mcpServer: McpServer, baseServer: Server } {
         style: z.enum(['jsdoc', 'markdown', 'detailed'])
           .default('jsdoc')
           .describe('Documentation style'),
+      },
+      annotations: {
+        readOnlyHint: false,
+        idempotentHint: false,
+        destructiveHint: false,
       },
     },
     async ({ code, language, style }, extra) => {
@@ -875,6 +900,11 @@ Returns...
           .describe('Maximum number of files to scan'),
         scanType: z.enum(['quick', 'detailed']).default('quick')
           .describe('Type of scan to perform'),
+      },
+      annotations: {
+        readOnlyHint: true,
+        idempotentHint: true,
+        destructiveHint: false,
       },
     },
     async ({ directory, pattern, maxFiles, scanType }, extra) => {

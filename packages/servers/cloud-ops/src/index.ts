@@ -89,6 +89,11 @@ server.registerTool(
       serviceName: z.string().optional().describe('Specific service to check (optional)'),
       environment: z.enum(['dev', 'staging', 'prod']).optional().describe('Environment to check'),
     },
+    annotations: {
+      readOnlyHint: true,
+      idempotentHint: true,
+      destructiveHint: false,
+    },
   },
   async ({ serviceName, environment }: { serviceName?: string, environment?: string }) => {
     logger.info('Checking service health', { serviceName, environment });
@@ -172,6 +177,11 @@ server.registerTool(
       version: z.string().describe('Version to deploy'),
       environment: z.enum(['dev', 'staging', 'prod']).describe('Target environment'),
       dryRun: z.boolean().default(false).describe('Perform a dry run without actual deployment'),
+    },
+    annotations: {
+      readOnlyHint: false,
+      idempotentHint: false,
+      destructiveHint: true,
     },
   },
   async ({ serviceName, version, environment, dryRun }: { serviceName: string, version: string, environment: string, dryRun: boolean }) => {
@@ -262,6 +272,11 @@ server.registerTool(
     inputSchema: {
       timeRange: z.enum(['5m', '1h', '6h', '24h', '7d']).default('1h').describe('Time range for metrics'),
       metrics: z.array(z.enum(['cpu', 'memory', 'network', 'disk'])).default(['cpu', 'memory']).describe('Metrics to retrieve'),
+    },
+    annotations: {
+      readOnlyHint: true,
+      idempotentHint: true,
+      destructiveHint: false,
     },
   },
   async ({ timeRange, metrics }: { timeRange: string, metrics: string[] }) => {
@@ -364,6 +379,11 @@ server.registerTool(
     inputSchema: {
       serviceName: z.string().describe('Name of the service to deploy'),
       currentVersion: z.string().optional().describe('Current version of the service'),
+    },
+    annotations: {
+      readOnlyHint: false,
+      idempotentHint: false,
+      destructiveHint: true,
     },
   },
   async ({ serviceName, currentVersion }) => {
@@ -600,6 +620,11 @@ server.registerTool(
         targetCPU: z.number().min(0).max(100).optional()
       }).optional().describe('Auto-scaling configuration')
     },
+    annotations: {
+      readOnlyHint: false,
+      idempotentHint: false,
+      destructiveHint: false,
+    },
   },
   async ({ serviceName, targetInstances, scaleType = 'horizontal', autoScaleConfig }) => {
     logger.info('Scaling service', { serviceName, targetInstances, scaleType });
@@ -716,6 +741,11 @@ server.registerTool(
         severity: z.enum(['info', 'warning', 'critical']).optional(),
         notificationChannels: z.array(z.string()).optional()
       }).optional().describe('Alert configuration')
+    },
+    annotations: {
+      readOnlyHint: false,
+      idempotentHint: false,
+      destructiveHint: false,
     },
   },
   async ({ action, alertConfig }) => {
@@ -857,6 +887,11 @@ server.registerTool(
         .describe('Enable health checks during deployment'),
       timeout: z.number().min(30).max(1800).default(300)
         .describe('Deployment timeout in seconds'),
+    },
+    annotations: {
+      readOnlyHint: false,
+      idempotentHint: false,
+      destructiveHint: true,
     },
   },
   async ({ services, environment, strategy, enableHealthChecks, timeout }, extra) => {

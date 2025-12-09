@@ -219,6 +219,11 @@ server.registerTool(
       tags: z.array(z.string()).optional().describe('Filter by tags'),
       limit: z.number().min(1).max(50).default(10).describe('Maximum number of results'),
     },
+    annotations: {
+      readOnlyHint: true,
+      idempotentHint: true,
+      destructiveHint: false,
+    },
   },
   async ({ query, category, tags, limit }) => {
     logger.info('Searching documents', { query, category, tags, limit });
@@ -312,6 +317,11 @@ server.registerTool(
       documentId: z.string().describe('Document ID to retrieve'),
       format: z.enum(['markdown', 'html', 'text']).default('markdown').describe('Output format'),
     },
+    annotations: {
+      readOnlyHint: true,
+      idempotentHint: true,
+      destructiveHint: false,
+    },
   },
   async ({ documentId, format }) => {
     logger.info('Getting document', { documentId, format });
@@ -399,6 +409,11 @@ server.registerTool(
       author: z.string().optional().describe('Document author'),
       summary: z.string().optional().describe('Brief summary of the document'),
     },
+    annotations: {
+      readOnlyHint: false,
+      idempotentHint: false,
+      destructiveHint: false,
+    },
   },
   async ({ title, content, category, tags, author, summary }) => {
     logger.info('Creating document', { title, category, tags });
@@ -468,6 +483,11 @@ server.registerTool(
     title: 'List Categories',
     description: 'List all document categories with counts',
     inputSchema: {},
+    annotations: {
+      readOnlyHint: true,
+      idempotentHint: true,
+      destructiveHint: false,
+    },
   },
   async () => {
     logger.info('Listing categories');
@@ -536,6 +556,11 @@ server.registerTool(
       batchSize: z.number().min(1).max(50).default(5).describe('Number of documents to process per batch'),
       includeValidation: z.boolean().default(true).describe('Include validation and quality checks'),
       enhancementLevel: z.enum(['basic', 'detailed', 'comprehensive']).default('basic').describe('Level of enhancement processing'),
+    },
+    annotations: {
+      readOnlyHint: false,
+      idempotentHint: false,
+      destructiveHint: false,
     },
   },
   async ({ operation, targetScope, scopeValue, batchSize, includeValidation, enhancementLevel }, extra) => {
@@ -934,6 +959,11 @@ server.registerTool(
     inputSchema: {
       testType: z.enum(['simple', 'complex']).default('simple').describe('Type of elicitation test to run'),
     },
+    annotations: {
+      readOnlyHint: true,
+      idempotentHint: true,
+      destructiveHint: false,
+    },
   },
   async ({ testType }) => {
     logger.info('Testing elicitation', { testType });
@@ -1098,6 +1128,11 @@ server.registerTool(
     inputSchema: {
       mode: z.enum(['create', 'organize', 'analyze']).describe('Operation mode: create new content, organize existing, or analyze knowledge gaps'),
       initialTopic: z.string().optional().describe('Initial topic or content to work with'),
+    },
+    annotations: {
+      readOnlyHint: false,
+      idempotentHint: false,
+      destructiveHint: false,
     },
   },
   async ({ mode, initialTopic }) => {

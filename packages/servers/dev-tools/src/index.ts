@@ -74,6 +74,11 @@ function createMCPServer(): { mcpServer: McpServer, baseServer: Server } {
           .describe('Programming language'),
         filePath: z.string().optional().describe('Optional file path for config detection'),
       },
+      annotations: {
+        readOnlyHint: false,
+        idempotentHint: true,
+        destructiveHint: false,
+      },
     },
     async ({ code, language, filePath }) => {
       // Always log tool invocations for debugging and monitoring
@@ -174,6 +179,11 @@ function createMCPServer(): { mcpServer: McpServer, baseServer: Server } {
         maxDepth: z.number().min(1).max(10).default(5)
           .describe('Maximum directory depth to search'),
       },
+      annotations: {
+        readOnlyHint: true,
+        idempotentHint: true,
+        destructiveHint: false,
+      },
     },
     async ({ pattern, exclude, maxDepth }) => {
       logger.info('Listing project files', { pattern, exclude, maxDepth });
@@ -254,6 +264,11 @@ function createMCPServer(): { mcpServer: McpServer, baseServer: Server } {
           .describe('Maximum number of lines to read'),
         startLine: z.number().min(1).default(1)
           .describe('Starting line number (1-based)'),
+      },
+      annotations: {
+        readOnlyHint: true,
+        idempotentHint: true,
+        destructiveHint: false,
       },
     },
     async ({ filePath, maxLines, startLine }) => {
@@ -340,6 +355,11 @@ function createMCPServer(): { mcpServer: McpServer, baseServer: Server } {
         language: z.enum(['typescript', 'javascript', 'python', 'java'])
           .describe('Programming language'),
       },
+      annotations: {
+        readOnlyHint: true,
+        idempotentHint: true,
+        destructiveHint: false,
+      },
     },
     async ({ code, language }) => {
       logger.info('Starting interactive code review', { language });
@@ -351,6 +371,7 @@ function createMCPServer(): { mcpServer: McpServer, baseServer: Server } {
         const elicitationResult = await baseServer.elicitInput({
           message: `Please specify your code review preferences for this ${language} code`,
           requestedSchema: {
+            $schema: 'https://json-schema.org/draft/2020-12/schema',
             type: "object",
             properties: {
               reviewType: {
@@ -560,6 +581,11 @@ function createMCPServer(): { mcpServer: McpServer, baseServer: Server } {
           .default('jsdoc')
           .describe('Documentation style'),
       },
+      annotations: {
+        readOnlyHint: false,
+        idempotentHint: false,
+        destructiveHint: false,
+      },
     },
     async ({ code, language, style }, extra) => {
       logger.info('Generating documentation', { language, style });
@@ -598,7 +624,7 @@ function createMCPServer(): { mcpServer: McpServer, baseServer: Server } {
               maxTokens: 1000,
               modelPreferences: {
                 hints: [{
-                  name: 'claude-3-5-sonnet-20241022'
+                  name: 'claude-3-5-haiku-20241022'
                 }]
               }
             };
@@ -621,7 +647,7 @@ function createMCPServer(): { mcpServer: McpServer, baseServer: Server } {
               maxTokens: 1000,
               modelPreferences: {
                 hints: [{
-                  name: 'claude-3-5-sonnet-20241022'
+                  name: 'claude-3-5-haiku-20241022'
                 }]
               }
             });
@@ -645,7 +671,7 @@ function createMCPServer(): { mcpServer: McpServer, baseServer: Server } {
                 style,
                 generatedAt: new Date().toISOString(),
                 method: 'real-mcp-sampling',
-                model: samplingResponse.model || 'claude-3-5-sonnet-20241022',
+                model: samplingResponse.model || 'claude-3-5-haiku-20241022',
               },
             };
           } catch (samplingError) {
@@ -754,7 +780,7 @@ console.log(areas);
                 style,
                 generatedAt: new Date().toISOString(),
                 method: 'fallback-simulation',
-                model: 'claude-3-5-sonnet-20241022',
+                model: 'claude-3-5-haiku-20241022',
               },
             };
           }
@@ -874,6 +900,11 @@ Returns...
           .describe('Maximum number of files to scan'),
         scanType: z.enum(['quick', 'detailed']).default('quick')
           .describe('Type of scan to perform'),
+      },
+      annotations: {
+        readOnlyHint: true,
+        idempotentHint: true,
+        destructiveHint: false,
       },
     },
     async ({ directory, pattern, maxFiles, scanType }, extra) => {
@@ -1796,6 +1827,18 @@ async function startHttpServer() {
   // Health check endpoint
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', server: 'dev-tools-server', version: '1.0.0' });
+  });
+
+  // Server info endpoint
+  app.get('/', (_req, res) => {
+    res.json({
+      server: 'dev-tools-server',
+      version: '1.0.0',
+      description: 'MCP Development Tools Server',
+      endpoints: ['/health', '/mcp', '/sse'],
+      protocol: 'MCP 2025-03-26',
+      capabilities: ['tools', 'resources', 'prompts', 'sampling', 'elicitation']
+    });
   });
 
   // STREAMABLE HTTP TRANSPORT (PROTOCOL VERSION 2025-03-26)

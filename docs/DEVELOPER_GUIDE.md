@@ -4,9 +4,16 @@
 
 This guide will help you get started with the MCP TypeScript Demo project in under 10 minutes.
 
+### SDK Version
+
+This project uses:
+- **@modelcontextprotocol/sdk**: `^1.24.3`
+- **zod**: `^3.25.0`
+- **Protocol**: MCP 2025-11-25
+
 ### Prerequisites
 
-- Node.js 18+ and pnpm
+- Node.js 20+ and pnpm 8+
 - Basic knowledge of TypeScript and JSON-RPC
 - Understanding of the Model Context Protocol (MCP) concepts
 
@@ -451,7 +458,7 @@ class MCPCache {
      version: '1.0.0'
    }, {
      capabilities: {},
-     protocolVersion: '2025-06-18' // Match server version
+     protocolVersion: '2025-11-25' // Match server version
    });
    ```
 
@@ -481,6 +488,35 @@ process.env.MCP_LOG_LEVEL = 'debug';
 3. **Build your own MCP server** using the provided templates
 4. **Join the community** for support and contributions
 
+## Tool Annotations (MCP 2025-11-25)
+
+All tools in this project include behavioral annotations that help clients understand tool behavior:
+
+```typescript
+server.registerTool('my_tool', {
+  title: 'My Tool',
+  description: 'Does something useful',
+  inputSchema: {
+    param: z.string().describe('Input parameter'),
+  },
+  annotations: {
+    readOnlyHint: true,      // Tool only reads data, no side effects
+    idempotentHint: true,    // Repeated calls have same effect
+    destructiveHint: false,  // Doesn't cause irreversible changes
+  },
+}, async (params) => {
+  // Implementation
+});
+```
+
+### Annotation Reference
+
+| Annotation | Description | Example Tools |
+|------------|-------------|---------------|
+| `readOnlyHint: true` | Tool only reads data | `search_documents`, `get_document`, `check_service_health` |
+| `idempotentHint: true` | Repeated calls produce same result | `format_code`, `calculate_statistics`, `export_data` |
+| `destructiveHint: true` | Can cause irreversible changes | `deploy_service`, `deploy_multi_service` |
+
 ## Best Practices
 
 1. **Always initialize connections** before making calls
@@ -491,5 +527,7 @@ process.env.MCP_LOG_LEVEL = 'debug';
 6. **Leverage progress notifications** for long-running operations
 7. **Cache frequently accessed data** to improve performance
 8. **Test your integrations** thoroughly with automated tests
+9. **Add tool annotations** to help clients understand tool behavior
+10. **Use JSON Schema 2020-12** for elicitation schemas
 
 Happy coding with MCP! 🚀

@@ -1,6 +1,12 @@
 # MCP TypeScript Demo
 
-A comprehensive demonstration of the Model Context Protocol (MCP) using TypeScript, showcasing all protocol features through practical, real-world applications. This project implements the MCP June 18 2025 specification with full protocol compliance.
+A comprehensive demonstration of the Model Context Protocol (MCP) using TypeScript, showcasing all protocol features through practical, real-world applications. This project implements the MCP 2025-11-25 specification with full protocol compliance.
+
+## SDK Version
+
+- **@modelcontextprotocol/sdk**: `^1.24.3`
+- **zod**: `^3.25.0`
+- **Protocol Version**: MCP 2025-11-25
 
 ## 🎯 Overview
 
@@ -171,8 +177,49 @@ npx vsce package --no-dependencies
 
 ## 📚 Features Demonstrated
 
+### MCP 2025-11-25 Features
+
+This demo implements modern MCP specification features:
+
+#### Tool Annotations
+All tools include behavioral metadata hints:
+- **readOnlyHint**: Indicates tools that only read data (no side effects)
+- **idempotentHint**: Indicates repeatable operations with same effect
+- **destructiveHint**: Indicates tools that can cause irreversible changes
+
+```typescript
+// Example tool with annotations
+server.registerTool('deploy_service', {
+  title: 'Deploy Service',
+  description: 'Deploy a service to specified environment',
+  inputSchema: { /* ... */ },
+  annotations: {
+    readOnlyHint: false,
+    idempotentHint: false,
+    destructiveHint: true,  // Deployment is destructive
+  },
+}, async (params) => { /* ... */ });
+```
+
+#### JSON Schema 2020-12
+All elicitation schemas use the modern JSON Schema dialect:
+```typescript
+requestedSchema: {
+  $schema: 'https://json-schema.org/draft/2020-12/schema',
+  type: 'object',
+  properties: { /* ... */ }
+}
+```
+
+#### Server Info Endpoints
+All HTTP servers expose info at root endpoint:
+```bash
+curl http://localhost:3001/
+# Returns: { server, version, description, endpoints, protocol, capabilities }
+```
+
 ### MCP Protocol Features
-- ✅ **Transports**: 
+- ✅ **Transports**:
   - stdio (direct process communication)
   - Streamable HTTP (with session management and SSE streaming)
 - ✅ **Lifecycle**: Complete initialization → operation → shutdown flow
@@ -210,31 +257,56 @@ npx vsce package --no-dependencies
 ### Server-Specific Capabilities
 
 #### dev-tools-server (Port 3001)
-- **Tools**: `format-code`, `list-files`, `read-file`, `scan-project`
+- **Tools** (6 total, all with annotations):
+  - `format_code` - Format code with Prettier (idempotent)
+  - `list_project_files` - List source files (read-only)
+  - `read_file` - Read file contents (read-only)
+  - `interactive_code_review` - AI-assisted code review with elicitation (read-only)
+  - `generate_documentation` - Generate docs via sampling
+  - `scan_project` - Scan project with progress (read-only)
 - **Resources**: `project-structure`, `recent-changes`
-- **Advanced**: Interactive code review, documentation generation
-- **Features**: Argument completion support for language parameters
+- **Features**: Argument completion, elicitation, sampling, progress notifications
 
 #### analytics-server (Port 3002)
-- **Tools**: `calculate-statistics`, `generate-sample-data`, `export-data`
+- **Tools** (6 total, all with annotations):
+  - `analyze_csv` - Analyze CSV data (read-only)
+  - `generate_sample_data` - Generate test datasets
+  - `calculate_statistics` - Statistical calculations (read-only)
+  - `interactive_data_analysis` - Guided analysis with elicitation (read-only)
+  - `export_data` - Export to JSON/CSV (idempotent)
+  - `process_large_dataset` - Batch processing with progress
 - **Resources**: `csv-data/{filename}`, `analysis-results`
-- **Features**: Progress tracking, interactive analysis preferences
+- **Features**: Progress tracking, elicitation, D3 statistics
 
 #### cloud-ops-server (Port 3003)
-- **Tools**: `check-service-health`, `deploy-service`, `scale-service`, `manage-alerts`
+- **Tools** (7 total, all with annotations):
+  - `check_service_health` - Health status (read-only)
+  - `deploy_service` - Deploy to environment (**destructive**)
+  - `get_system_metrics` - Retrieve metrics (read-only)
+  - `interactive_deployment_planner` - Guided deployment with elicitation (**destructive**)
+  - `scale_service` - Scale instances
+  - `manage_alerts` - Alert configuration
+  - `deploy_multi_service` - Multi-service deployment with progress (**destructive**)
 - **Resources**: `service-status`, `deployment-history`, `system-metrics`
-- **Features**: Real-time monitoring, operational analytics
+- **Features**: Real-time monitoring, elicitation, progress notifications
 
 #### knowledge-server (Port 3004)
-- **Tools**: `create-document`, `search-documents`, `list-categories`
+- **Tools** (8 total, all with annotations):
+  - `search_documents` - Full-text search (read-only)
+  - `get_document` - Retrieve by ID (read-only)
+  - `create_document` - Create new document
+  - `list_categories` - List all categories (read-only)
+  - `bulk_knowledge_processing` - Batch operations with progress
+  - `test_elicitation` - Elicitation testing (read-only)
+  - `interactive_knowledge_curator` - Guided content creation with elicitation
 - **Resources**: `documents/{id}`, `categories`, `search-index`
-- **Features**: Full-text search with Fuse.js, change notifications
+- **Features**: Fuse.js search, elicitation, change notifications, progress tracking
 
 #### chat-server (Port 4000)
 - **Unique Role**: Acts as MCP client, not traditional server
 - **Features**: Multi-provider LLM support (Claude, OpenAI) with streaming tool execution
 - **Purpose**: Bridges multiple MCP servers for chat applications
-- **Fixed**: OpenAI streaming now properly executes MCP tools
+- **Model**: claude-3-5-haiku-20241022 (configurable)
 
 ### VSCode Extension
 - **Visual Interface**: Tree views for servers and capabilities
@@ -280,7 +352,7 @@ pnpm clean
 
 #### Creating a New Server
 ```typescript
-import { Server as McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 const server = new McpServer({
@@ -288,26 +360,51 @@ const server = new McpServer({
   version: '1.0.0'
 }, {
   capabilities: {
-    tools: true,
-    resources: true,
-    prompts: true,
-    elicitation: true,
-    sampling: true
+    logging: {},
+    sampling: {},
+    elicitation: {},
+    prompts: { listChanged: true },
+    resources: { subscribe: true, listChanged: true }
   }
 });
 
-// Register a tool
+// Register a tool with annotations (MCP 2025-11-25)
 server.registerTool('tool_name', {
   title: 'Human-readable title',
   description: 'What this tool does',
-  inputSchema: z.object({
-    param: z.string().describe('Parameter description')
-  })
+  inputSchema: {
+    param: z.string().describe('Parameter description'),
+  },
+  annotations: {
+    readOnlyHint: true,      // Tool only reads data
+    idempotentHint: true,    // Repeated calls have same effect
+    destructiveHint: false,  // Doesn't cause destructive changes
+  },
 }, async (params) => {
   // Implementation
   return {
-    content: [{type: 'text', text: 'Result'}]
+    content: [{ type: 'text', text: 'Result' }]
   };
+});
+```
+
+#### Elicitation with JSON Schema 2020-12
+```typescript
+const userInput = await baseServer.elicitInput({
+  message: 'Configure your preferences:',
+  requestedSchema: {
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    type: 'object',
+    properties: {
+      option: {
+        type: 'string',
+        enum: ['a', 'b', 'c'],
+        title: 'Select Option',
+        description: 'Choose your preference'
+      }
+    },
+    required: ['option']
+  }
 });
 ```
 
@@ -336,8 +433,9 @@ The project implements comprehensive error handling with standard JSON-RPC error
 - [Chat Server](./packages/servers/chat-server/README.md)
 
 ### External Resources
-- [MCP Specification (June 18 2025)](https://modelcontextprotocol.io/specification/2025-06-18)
+- [MCP Specification (2025-11-25)](https://modelcontextprotocol.io/specification/2025-11-25)
 - [MCP GitHub Repository](https://github.com/modelcontextprotocol/specification)
+- [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)
 
 ## 🧪 Testing
 
@@ -405,6 +503,7 @@ MIT License - see LICENSE file for details
 
 ## 🙏 Acknowledgments
 
-- Built with the official [Model Context Protocol TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) by Anthropic
-- Implements the [MCP June 18 2025 specification](https://modelcontextprotocol.io/specification/2025-06-18)
-- Uses modern TypeScript tooling: Vite, Vitest, Turbo, and more
+- Built with the official [Model Context Protocol TypeScript SDK v1.24.3](https://github.com/modelcontextprotocol/typescript-sdk) by Anthropic
+- Implements the [MCP 2025-11-25 specification](https://modelcontextprotocol.io/specification/2025-11-25)
+- Uses modern TypeScript tooling: Vite, Vitest, Turbo, pnpm, and more
+- Schema validation with [Zod v3.25](https://github.com/colinhacks/zod)

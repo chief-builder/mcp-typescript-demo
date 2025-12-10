@@ -41,7 +41,7 @@ export class ClaudeProvider extends LLMProvider {
   get models(): ModelInfo[] {
     return [
       {
-        id: 'claude-3-5-sonnet-20241022',
+        id: 'claude-3-5-haiku-20241022',
         name: 'Claude 3.5 Sonnet',
         description: 'Most intelligent model, best for complex reasoning and analysis',
         capabilities: {
@@ -280,7 +280,7 @@ export class ClaudeProvider extends LLMProvider {
   }
 
   private buildRequestBody(options: ChatCompletionOptions) {
-    const { messages, model = 'claude-3-5-sonnet-20241022', ...otherOptions } = options;
+    const { messages, model = 'claude-3-5-haiku-20241022', ...otherOptions } = options;
 
     // Extract system message if present
     const systemMessage = messages.find(m => m.role === 'system');

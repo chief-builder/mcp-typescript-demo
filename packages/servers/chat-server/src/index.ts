@@ -115,7 +115,7 @@ class EnhancedChatService {
 
           // Use our Claude service to handle the sampling request
           const response = await this.anthropic.messages.create({
-            model: modelPreferences?.hints?.[0]?.name || 'claude-3-5-sonnet-20241022',
+            model: modelPreferences?.hints?.[0]?.name || 'claude-3-5-haiku-20241022',
             max_tokens: maxTokens || 1000,
             messages: claudeMessages
           });
@@ -321,7 +321,7 @@ class EnhancedChatService {
           messages,
           tools: llmTools,
           maxTokens: 4096,
-          model: selectedProvider === 'openai' ? 'gpt-4o-mini' : 'claude-3-5-sonnet-20241022'
+          model: selectedProvider === 'openai' ? 'gpt-4o-mini' : 'claude-3-5-haiku-20241022'
         };
 
         // Accumulate tool calls from streaming chunks
@@ -577,7 +577,7 @@ class EnhancedChatService {
     const streamOptions = {
       tools: llmTools,
       maxTokens: 4096,
-      model: provider === 'openai' ? 'gpt-4o-mini' : 'claude-3-5-sonnet-20241022'
+      model: provider === 'openai' ? 'gpt-4o-mini' : 'claude-3-5-haiku-20241022'
     };
 
     // Stream the response without tool execution
@@ -738,7 +738,7 @@ class EnhancedChatService {
       // Chat loop - similar to Python reference
       while (true) {
         const response = await this.anthropic.messages.create({
-          model: 'claude-3-5-sonnet-20241022',
+          model: 'claude-3-5-haiku-20241022',
           max_tokens: 4096,
           messages: messages,
           tools: tools

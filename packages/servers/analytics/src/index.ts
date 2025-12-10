@@ -79,6 +79,11 @@ server.registerTool(
       filePath: z.string().describe('Path to the CSV file'),
       columns: z.array(z.string()).optional().describe('Specific columns to analyze (optional)'),
     },
+    annotations: {
+      readOnlyHint: true,
+      idempotentHint: true,
+      destructiveHint: false,
+    },
   },
   async ({ filePath, columns }) => {
     logger.info('Analyzing CSV data', { filePath, columns });
@@ -168,6 +173,11 @@ server.registerTool(
       recordCount: z.number().min(1).max(10000).default(100).describe('Number of records to generate'),
       outputPath: z.string().optional().describe('Optional file path to save the data'),
     },
+    annotations: {
+      readOnlyHint: false,
+      idempotentHint: false,
+      destructiveHint: false,
+    },
   },
   async ({ format, recordCount, outputPath }) => {
     logger.info('Generating sample data', { format, recordCount, outputPath });
@@ -234,6 +244,11 @@ server.registerTool(
       measures: z.array(z.enum(['mean', 'median', 'mode', 'std', 'min', 'max', 'quartiles']))
         .default(['mean', 'median', 'std', 'min', 'max'])
         .describe('Statistical measures to calculate'),
+    },
+    annotations: {
+      readOnlyHint: true,
+      idempotentHint: true,
+      destructiveHint: false,
     },
   },
   async ({ data, measures }) => {
@@ -319,6 +334,11 @@ server.registerTool(
     inputSchema: {
       dataPath: z.string().describe('Path to data file or dataset identifier'),
     },
+    annotations: {
+      readOnlyHint: true,
+      idempotentHint: true,
+      destructiveHint: false,
+    },
   },
   async ({ dataPath }) => {
     logger.info('Starting interactive data analysis', { dataPath });
@@ -328,6 +348,7 @@ server.registerTool(
       const analysisPrefs = await baseServer.elicitInput({
         message: `Starting data analysis for: ${dataPath}\n\nPlease configure your analysis preferences:`,
         requestedSchema: {
+          $schema: 'https://json-schema.org/draft/2020-12/schema',
           type: 'object',
           properties: {
             analysisType: {
@@ -495,6 +516,11 @@ server.registerTool(
       format: z.enum(['json', 'csv']).describe('Export format'),
       filename: z.string().optional().describe('Optional filename for the export'),
     },
+    annotations: {
+      readOnlyHint: false,
+      idempotentHint: true,
+      destructiveHint: false,
+    },
   },
   async ({ data, format, filename }) => {
     logger.info('Exporting data', { format, recordCount: data.length, filename });
@@ -572,6 +598,11 @@ server.registerTool(
         .describe('Processing batch size'),
       includeValidation: z.boolean().default(true)
         .describe('Include data validation step'),
+    },
+    annotations: {
+      readOnlyHint: false,
+      idempotentHint: false,
+      destructiveHint: false,
     },
   },
   async ({ operation, recordCount, batchSize, includeValidation }, extra) => {
@@ -1772,6 +1803,18 @@ async function startHttpServer() {
   // Health check endpoint
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', server: 'analytics-server', version: '1.0.0' });
+  });
+
+  // Server info endpoint
+  app.get('/', (_req, res) => {
+    res.json({
+      server: 'analytics-server',
+      version: '1.0.0',
+      description: 'MCP Analytics Server',
+      endpoints: ['/health', '/mcp', '/sse'],
+      protocol: 'MCP 2025-03-26',
+      capabilities: ['tools', 'resources', 'prompts', 'sampling', 'elicitation']
+    });
   });
 
   // STREAMABLE HTTP TRANSPORT (PROTOCOL VERSION 2025-03-26)

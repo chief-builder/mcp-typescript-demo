@@ -2,9 +2,15 @@
 
 ## Overview
 
-This document provides a comprehensive analysis of the Model Context Protocol (MCP) TypeScript demonstration project, based on the June 18 2025 specification. The project showcases a complete implementation of the MCP ecosystem with multiple servers, clients, and applications.
+This document provides a comprehensive analysis of the Model Context Protocol (MCP) TypeScript demonstration project, based on the MCP 2025-11-25 specification. The project showcases a complete implementation of the MCP ecosystem with multiple servers, clients, and applications.
 
-## MCP Specification Summary (June 18 2025)
+## SDK Version
+
+- **@modelcontextprotocol/sdk**: `^1.24.3`
+- **zod**: `^3.25.0`
+- **Protocol**: MCP 2025-11-25
+
+## MCP Specification Summary (2025-11-25)
 
 ### Core Architecture
 The Model Context Protocol follows a **client-host-server architecture** where:
@@ -65,8 +71,8 @@ mcp-typescript-demo/
 All servers follow a consistent structure:
 
 ```typescript
-import { Server as McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StreamableHTTP } from '@modelcontextprotocol/sdk/transports/streamable-http/server.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { z } from 'zod';
 
 // Create server with capabilities
@@ -75,26 +81,30 @@ const server = new McpServer({
   version: '1.0.0'
 }, {
   capabilities: {
-    tools: true,
-    resources: true,
-    prompts: true,
-    elicitation: true,
-    sampling: true,
-    progressNotification: true
+    logging: {},
+    sampling: {},
+    elicitation: {},
+    prompts: { listChanged: true },
+    resources: { subscribe: true, listChanged: true }
   }
 });
 
-// Register tools with Zod validation
+// Register tools with Zod validation and annotations (MCP 2025-11-25)
 server.registerTool('tool_name', {
   title: 'Human-readable title',
   description: 'Tool purpose',
-  inputSchema: z.object({
+  inputSchema: {
     param: z.string().describe('Parameter description')
-  })
+  },
+  annotations: {
+    readOnlyHint: true,      // Tool only reads data
+    idempotentHint: true,    // Repeated calls have same effect
+    destructiveHint: false,  // Doesn't cause destructive changes
+  },
 }, async (params) => {
   // Implementation with progress tracking
   return {
-    content: [{type: 'text', text: 'Result'}],
+    content: [{ type: 'text', text: 'Result' }],
     metadata: { /* optional */ }
   };
 });

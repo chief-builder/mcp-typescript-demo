@@ -3,6 +3,9 @@ export * from './types/index.js';
 export * from './utils/index.js';
 export * from './schemas/index.js';
 
+// Export task management
+export * from './tasks/index.js';
+
 // Export LLM provider system
 export * from './llm/types.js';
 export * from './llm/ProviderFactory.js';

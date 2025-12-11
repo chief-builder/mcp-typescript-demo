@@ -71,52 +71,64 @@ services:
     networks:
       - mcp-auth
 
-  # Client registration on startup
+  # Client registration on startup using REST API (more reliable than CLI)
   hydra-clients:
-    image: oryd/hydra:v2.2
+    image: curlimages/curl:latest
     container_name: mcp-hydra-clients
-    environment:
-      - HYDRA_ADMIN_URL=http://hydra:4445
     entrypoint: /bin/sh
     command:
       - -c
       - |
         sleep 5
-        echo "Registering MCP OAuth clients..."
+        echo "Waiting for Hydra to be ready..."
+
+        # Wait for Hydra admin API
+        until curl -sf http://hydra:4445/health/ready > /dev/null 2>&1; do
+          echo "Waiting for Hydra..."
+          sleep 2
+        done
+
+        echo "Registering MCP OAuth clients via REST API..."
 
         # CLI Client (public client with PKCE)
-        hydra create oauth2-client \
-          --endpoint http://hydra:4445 \
-          --name "MCP CLI Client" \
-          --id cli-client \
-          --grant-type authorization_code,refresh_token \
-          --response-type code \
-          --scope openid,offline_access,mcp:read,mcp:write,analytics:read,analytics:write \
-          --redirect-uri http://localhost:8085/callback \
-          --token-endpoint-auth-method none \
-          --skip-consent
+        curl -X POST http://hydra:4445/admin/clients \
+          -H "Content-Type: application/json" \
+          -d '{
+            "client_id": "cli-client",
+            "client_name": "MCP CLI Client",
+            "grant_types": ["authorization_code", "refresh_token"],
+            "response_types": ["code"],
+            "scope": "openid offline_access mcp:read mcp:write analytics:read analytics:write",
+            "redirect_uris": ["http://localhost:8085/callback"],
+            "token_endpoint_auth_method": "none",
+            "skip_consent": true
+          }' && echo ""
 
         # Analytics Server (confidential client for introspection)
-        hydra create oauth2-client \
-          --endpoint http://hydra:4445 \
-          --name "Analytics Server" \
-          --id analytics-server \
-          --secret analytics-server-secret \
-          --grant-type client_credentials \
-          --response-type token \
-          --scope introspect \
-          --token-endpoint-auth-method client_secret_basic
+        curl -X POST http://hydra:4445/admin/clients \
+          -H "Content-Type: application/json" \
+          -d '{
+            "client_id": "analytics-server",
+            "client_name": "Analytics Server",
+            "client_secret": "analytics-server-secret",
+            "grant_types": ["client_credentials"],
+            "response_types": ["token"],
+            "scope": "introspect",
+            "token_endpoint_auth_method": "client_secret_basic"
+          }' && echo ""
 
         # Dev Tools Server (confidential client for introspection)
-        hydra create oauth2-client \
-          --endpoint http://hydra:4445 \
-          --name "Dev Tools Server" \
-          --id dev-tools-server \
-          --secret dev-tools-server-secret \
-          --grant-type client_credentials \
-          --response-type token \
-          --scope introspect \
-          --token-endpoint-auth-method client_secret_basic
+        curl -X POST http://hydra:4445/admin/clients \
+          -H "Content-Type: application/json" \
+          -d '{
+            "client_id": "dev-tools-server",
+            "client_name": "Dev Tools Server",
+            "client_secret": "dev-tools-server-secret",
+            "grant_types": ["client_credentials"],
+            "response_types": ["token"],
+            "scope": "introspect",
+            "token_endpoint_auth_method": "client_secret_basic"
+          }' && echo ""
 
         echo "OAuth clients registered successfully!"
     depends_on:

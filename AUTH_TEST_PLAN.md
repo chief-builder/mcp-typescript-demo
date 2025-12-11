@@ -50,8 +50,8 @@ docker-compose -f docker/docker-compose.auth.yml logs -f hydra-clients
 # Check Hydra health
 curl http://localhost:4444/health/ready
 
-# Check AS metadata
-curl http://localhost:4444/.well-known/oauth-authorization-server | jq
+# Check AS metadata (Hydra uses OIDC discovery endpoint)
+curl http://localhost:4444/.well-known/openid-configuration | jq
 ```
 
 ### Test Credentials

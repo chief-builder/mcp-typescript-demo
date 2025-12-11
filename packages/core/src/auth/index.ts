@@ -140,3 +140,12 @@ export {
   type AuthMiddlewareConfig,
   type AuthenticatedRequest,
 } from './middleware.js';
+
+// Server Auth Configuration (Express integration)
+export {
+  createMCPServerAuth,
+  createMCPServerAuthFromEnv,
+  type MCPServerAuthSetupConfig,
+  type MCPServerAuthSetup,
+  type AuthenticatedExpressRequest,
+} from './server-config.js';

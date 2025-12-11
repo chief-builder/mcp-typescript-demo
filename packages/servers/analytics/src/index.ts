@@ -9,7 +9,7 @@ import express from 'express';
 import cors from 'cors';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { Logger, createErrorResponse } from '@mcp-demo/core';
+import { Logger, createErrorResponse, createMCPServerAuthFromEnv } from '@mcp-demo/core';
 import { writeFile } from 'fs/promises';
 import * as d3 from 'd3';
 
@@ -21,6 +21,17 @@ const hasHttpFlag = args.includes('--http');
 const transportArg = args.find(arg => arg.startsWith('--transport='))?.split('=')[1] || (hasHttpFlag ? 'http' : 'stdio');
 const portArg = args.find(arg => arg.startsWith('--port='))?.split('=')[1];
 const port = portArg ? parseInt(portArg, 10) : 3002;
+
+// Initialize OAuth 2.1 authorization (MCP 2025-11-25)
+const auth = createMCPServerAuthFromEnv({
+  resourceUrl: `http://localhost:${port}`,
+  authServerUrl: 'http://localhost:4444',
+  introspectionEndpoint: 'http://localhost:4445/admin/oauth2/introspect',
+  clientId: 'analytics-server',
+  clientSecret: 'analytics-server-secret',
+  requiredScopes: ['analytics:read'],
+  scopesSupported: ['analytics:read', 'analytics:write'],
+});
 
 // Create MCP server factory function
 function createMCPServer(): { mcpServer: McpServer, baseServer: any } {
@@ -1799,6 +1810,9 @@ async function startHttpServer() {
     origin: '*',
     exposedHeaders: ['Mcp-Session-Id']
   }));
+
+  // Setup OAuth 2.1 authorization (adds PRM endpoint + auth middleware)
+  auth.setupExpress(app, '/mcp');
 
   // Health check endpoint
   app.get('/health', (_req, res) => {

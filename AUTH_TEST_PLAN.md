@@ -107,12 +107,15 @@ Expected: HTTP 401 with `WWW-Authenticate: Bearer resource_metadata="http://loca
 
 Open this URL in a browser:
 ```
-http://localhost:4444/oauth2/auth?response_type=code&client_id=cli-client&redirect_uri=http://localhost:8085/callback&scope=openid%20offline_access%20analytics:read%20analytics:write&code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM&code_challenge_method=S256
+http://localhost:4444/oauth2/auth?response_type=code&client_id=cli-client&redirect_uri=http://localhost:8085/callback&scope=openid%20offline_access%20analytics:read%20analytics:write&state=teststate12345678&code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM&code_challenge_method=S256
 ```
 
+> **Note:** The `state` parameter is required and must be at least 8 characters for CSRF protection.
+
 1. Login with `demo/demo`
-2. Grant consent
-3. Copy the `code` from the redirect URL
+2. Grant consent (if prompted)
+3. You'll be redirected to `http://localhost:8085/callback?code=AUTH_CODE&state=teststate12345678`
+4. Copy the `code` from the redirect URL (the page won't load since there's no callback server)
 
 ### 3.2 Exchange Code for Token
 

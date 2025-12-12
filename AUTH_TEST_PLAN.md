@@ -52,6 +52,9 @@ curl http://localhost:4444/health/ready
 
 # Check AS metadata (Hydra uses OIDC discovery endpoint)
 curl http://localhost:4444/.well-known/openid-configuration | jq
+
+# List registered clients
+curl http://localhost:4445/admin/clients | jq
 ```
 
 ### Test Credentials
@@ -61,22 +64,52 @@ curl http://localhost:4444/.well-known/openid-configuration | jq
 | demo     | demo     | Demo user   |
 | admin    | admin    | Admin user  |
 
+### Registered OAuth Clients
+
+| Client ID | Type | Purpose |
+|-----------|------|---------|
+| cli-client | Public (PKCE) | User authentication |
+| analytics-server | Confidential | Token introspection |
+| dev-tools-server | Confidential | Token introspection |
+
 ## Step 2: Start Analytics Server with Auth
 
 ```bash
-# Start the analytics server with auth enabled (default)
+# From project root
 cd packages/servers/analytics
-npm run build
-node dist/index.js --http
+pnpm start -- --http
+```
 
-# Or with auth explicitly disabled for comparison
-AUTH_ENABLED=false node dist/index.js --http
+Expected output:
+```
+{"timestamp":"...","level":"info","logger":"analytics-server","message":"Starting MCP Analytics Server (HTTP mode on port 3002)"}
+[Auth] Protected Resource Metadata: http://localhost:3002/.well-known/oauth-protected-resource
+[Auth] Authorization Server: http://localhost:4444
+[Auth] Auth enabled for /mcp
+{"timestamp":"...","level":"info","logger":"analytics-server","message":"Analytics HTTP Server listening on port 3002"}
+
+==============================================
+MCP ANALYTICS SERVER
+
+Transport: HTTP/SSE
+Port: 3002
+
+Available Tools:
+- analyze_csv: Analyze CSV file and provide insights
+- generate_sample_data: Generate sample dataset
+- calculate_statistics: Calculate statistical measures
+
+Available Resources:
+- analytics://datasets/samples: Sample datasets
+
+Available Prompts:
+- data_analysis_workflow: Data analysis workflow guide
+==============================================
 ```
 
 ### Verify Protected Resource Metadata
 
 ```bash
-# Fetch PRM endpoint
 curl http://localhost:3002/.well-known/oauth-protected-resource | jq
 ```
 
@@ -90,16 +123,19 @@ Expected response:
 }
 ```
 
-### Verify 401 Response
+### Verify 401 Response (No Token)
 
 ```bash
-# Make unauthenticated request
 curl -v -X POST http://localhost:3002/mcp \
   -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
   -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}},"id":1}'
 ```
 
-Expected: HTTP 401 with `WWW-Authenticate: Bearer resource_metadata="http://localhost:3002/.well-known/oauth-protected-resource"`
+Expected: HTTP 401 with header:
+```
+WWW-Authenticate: Bearer resource_metadata="http://localhost:3002/.well-known/oauth-protected-resource"
+```
 
 ## Step 3: Test OAuth Flow Manually
 
@@ -130,19 +166,59 @@ curl -X POST http://localhost:4444/oauth2/token \
   -d "code_verifier=dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
 ```
 
-Note: The code_verifier above matches the code_challenge in step 3.1.
+> **Note:** The `code_verifier` above matches the `code_challenge` in step 3.1. The challenge is the SHA256 hash of the verifier.
 
-### 3.3 Use Token to Access Server
+Expected response:
+```json
+{
+  "access_token": "ory_at_...",
+  "expires_in": 3600,
+  "id_token": "eyJ...",
+  "refresh_token": "ory_rt_...",
+  "scope": "openid offline_access analytics:read analytics:write",
+  "token_type": "bearer"
+}
+```
+
+### 3.3 Use Token to Access MCP Server
 
 ```bash
 # Replace TOKEN with the access_token from step 3.2
 curl -X POST http://localhost:3002/mcp \
   -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
   -H "Authorization: Bearer TOKEN" \
   -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}},"id":1}'
 ```
 
-Expected: HTTP 200 with MCP initialize response
+Expected response (SSE format):
+```
+event: message
+data: {"result":{"protocolVersion":"2025-03-26","capabilities":{"logging":{},"elicitation":{},"completion":{},"prompts":{"listChanged":true},"resources":{"subscribe":true,"listChanged":true},"sampling":{},"tools":{"listChanged":true},"completions":{}},"serverInfo":{"name":"analytics-server","version":"1.0.0"}},"jsonrpc":"2.0","id":1}
+```
+
+Server logs should show:
+```
+[Auth] Introspecting token at http://localhost:4445/admin/oauth2/introspect
+[Auth] Introspection result: active=true, scope="openid offline_access analytics:read analytics:write", sub="demo"
+[Auth] Token audience: [], expected: http://localhost:3002
+[Auth] Token validated successfully
+{"timestamp":"...","level":"info","logger":"analytics-server","message":"Received POST request to /mcp"}
+{"timestamp":"...","level":"info","logger":"analytics-server","message":"StreamableHTTP session initialized with ID: ..."}
+```
+
+### 3.4 Call a Tool (with session)
+
+After initialize, use the session ID from the response header for subsequent requests:
+
+```bash
+curl -X POST http://localhost:3002/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Mcp-Session-Id: SESSION_ID" \
+  -d '{"jsonrpc":"2.0","method":"tools/list","id":2}'
+```
 
 ## Step 4: Test Token Introspection
 
@@ -161,57 +237,45 @@ Expected response:
   "scope": "openid offline_access analytics:read analytics:write",
   "client_id": "cli-client",
   "sub": "demo",
-  "token_type": "access_token"
+  "token_type": "access_token",
+  "exp": 1765543571,
+  "iat": 1765539971
 }
 ```
 
-## Step 5: Test with CLI Client Auth Manager
+## Step 5: Test Client Credentials Flow (M2M)
 
-```typescript
-// Example usage of CLI auth manager
-import { CLIAuthManager } from '@mcp-demo/cli-client/auth';
+For server-to-server authentication:
 
-const auth = new CLIAuthManager();
-
-// Check if auth is required
-const requiresAuth = await auth.checkAuthRequired('http://localhost:3002');
-console.log('Requires auth:', requiresAuth);
-
-// Authenticate (opens browser)
-const tokens = await auth.authenticate('http://localhost:3002');
-console.log('Access token:', tokens.accessToken);
-
-// Make authenticated request
-const response = await auth.authenticatedFetch('http://localhost:3002/mcp', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    jsonrpc: '2.0',
-    method: 'tools/list',
-    id: 1,
-  }),
-});
+```bash
+# Get a token using client credentials
+curl -X POST http://localhost:4444/oauth2/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -u "analytics-server:analytics-server-secret" \
+  -d "grant_type=client_credentials" \
+  -d "scope=introspect"
 ```
 
 ## Test Checklist
 
 ### Server-Side Tests
 
-- [ ] Protected Resource Metadata endpoint returns correct data
-- [ ] Unauthenticated requests return 401 with WWW-Authenticate header
-- [ ] WWW-Authenticate header includes resource_metadata URL
-- [ ] Valid tokens are accepted
+- [x] Protected Resource Metadata endpoint returns correct data
+- [x] Unauthenticated requests return 401 with WWW-Authenticate header
+- [x] WWW-Authenticate header includes resource_metadata URL
+- [x] Valid tokens are accepted
+- [x] Token introspection validates tokens
+- [x] Required scopes are enforced (analytics:read)
 - [ ] Expired tokens are rejected
 - [ ] Invalid tokens are rejected
 - [ ] Token caching works (introspection not called for cached tokens)
-- [ ] Required scopes are enforced
 
 ### Client-Side Tests
 
 - [ ] Discovery fetches PRM from 401 response
 - [ ] Discovery fetches AS metadata
-- [ ] PKCE code verifier is generated correctly
-- [ ] PKCE code challenge is S256 encoded
+- [x] PKCE code verifier is generated correctly
+- [x] PKCE code challenge is S256 encoded
 - [ ] Authorization URL opens in browser
 - [ ] Callback server receives auth code
 - [ ] Token exchange succeeds
@@ -221,7 +285,8 @@ const response = await auth.authenticatedFetch('http://localhost:3002/mcp', {
 
 ### Integration Tests
 
-- [ ] Full OAuth flow: discover → authorize → token → access
+- [x] Full OAuth flow: authorize → token → access (manual)
+- [ ] Full OAuth flow: automated with CLI client
 - [ ] Token refresh when expired
 - [ ] Multiple concurrent sessions
 - [ ] Logout clears tokens
@@ -251,6 +316,13 @@ const response = await auth.authenticatedFetch('http://localhost:3002/mcp', {
 
 ## Troubleshooting
 
+### "Not Acceptable: Client must accept both application/json and text/event-stream"
+
+Add the Accept header to your request:
+```bash
+-H "Accept: application/json, text/event-stream"
+```
+
 ### "Invalid client credentials" error
 
 1. Verify the client is registered:
@@ -265,7 +337,7 @@ const response = await auth.authenticatedFetch('http://localhost:3002/mcp', {
 
 ### "PKCE code challenge mismatch" error
 
-Ensure the code_verifier used in token exchange matches the code_challenge used in authorization.
+Ensure the code_verifier used in token exchange matches the code_challenge used in authorization. The challenge is `BASE64URL(SHA256(verifier))`.
 
 ### "Token is not active" error
 
@@ -278,6 +350,10 @@ Ensure the code_verifier used in token exchange matches the code_challenge used 
 1. Verify PRM endpoint returns valid data
 2. Check authorization_servers array is not empty
 
+### "state is missing or does not have enough characters"
+
+The `state` parameter must be at least 8 characters. Add `&state=teststate12345678` to the authorization URL.
+
 ## Cleanup
 
 ```bash
@@ -287,3 +363,12 @@ docker-compose -f docker/docker-compose.auth.yml down -v
 # Remove volumes
 docker volume prune -f
 ```
+
+## References
+
+- [MCP 2025-11-25 Authorization Spec](https://spec.modelcontextprotocol.io/specification/2025-11-25/basic/authorization/)
+- [OAuth 2.1 (draft)](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-07)
+- [PKCE RFC 7636](https://datatracker.ietf.org/doc/html/rfc7636)
+- [Protected Resource Metadata RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728)
+- [Ory Hydra Documentation](https://www.ory.sh/docs/hydra/)
+- [ADR-001: OAuth Audience Validation](docs/adr/001-oauth-audience-validation.md)

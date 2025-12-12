@@ -127,35 +127,45 @@ function createOryIntrospectionValidator(
   return async (token: string): Promise<TokenIntrospectionResponse> => {
     const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 
-    const response = await fetch(introspectionEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${credentials}`,
-      },
-      body: new URLSearchParams({ token }),
-    });
+    console.log(`[Auth] Introspecting token at ${introspectionEndpoint}`);
 
-    if (!response.ok) {
-      throw new Error(`Introspection failed: ${response.status}`);
+    try {
+      const response = await fetch(introspectionEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Basic ${credentials}`,
+        },
+        body: new URLSearchParams({ token }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[Auth] Introspection failed: ${response.status} - ${errorText}`);
+        throw new Error(`Introspection failed: ${response.status}`);
+      }
+
+      const data = await response.json() as Record<string, unknown>;
+      console.log(`[Auth] Introspection result: active=${data.active}, scope="${data.scope}", sub="${data.sub}"`);
+
+      return {
+        active: Boolean(data.active),
+        scope: data.scope as string | undefined,
+        client_id: data.client_id as string | undefined,
+        username: data.username as string | undefined,
+        token_type: data.token_type as string | undefined,
+        exp: data.exp as number | undefined,
+        iat: data.iat as number | undefined,
+        nbf: data.nbf as number | undefined,
+        sub: data.sub as string | undefined,
+        aud: data.aud as string | string[] | undefined,
+        iss: data.iss as string | undefined,
+        jti: data.jti as string | undefined,
+      };
+    } catch (error) {
+      console.error(`[Auth] Introspection error:`, error);
+      throw error;
     }
-
-    const data = await response.json() as Record<string, unknown>;
-
-    return {
-      active: Boolean(data.active),
-      scope: data.scope as string | undefined,
-      client_id: data.client_id as string | undefined,
-      username: data.username as string | undefined,
-      token_type: data.token_type as string | undefined,
-      exp: data.exp as number | undefined,
-      iat: data.iat as number | undefined,
-      nbf: data.nbf as number | undefined,
-      sub: data.sub as string | undefined,
-      aud: data.aud as string | string[] | undefined,
-      iss: data.iss as string | undefined,
-      jti: data.jti as string | undefined,
-    };
   };
 }
 

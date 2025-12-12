@@ -7,6 +7,7 @@ import ora from 'ora';
 import { table } from 'table';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { MCPHTTPClient, type HTTPServerConfig } from './httpClient.js';
 
 interface ServerConfig {
   name: string;
@@ -14,7 +15,7 @@ interface ServerConfig {
   description?: string;
 }
 
-// Default server configurations
+// Default server configurations (stdio)
 const DEFAULT_SERVERS: Record<string, ServerConfig> = {
   'dev-tools': {
     name: 'Development Tools',
@@ -35,6 +36,24 @@ const DEFAULT_SERVERS: Record<string, ServerConfig> = {
     name: 'Knowledge Base',
     command: 'node ../../../packages/servers/knowledge/dist/index.js',
     description: 'Document storage, search, and knowledge management',
+  },
+};
+
+// HTTP server configurations (with OAuth support)
+const HTTP_SERVERS: Record<string, HTTPServerConfig> = {
+  'analytics-http': {
+    name: 'Analytics Server (HTTP)',
+    url: 'http://localhost:3002',
+    description: 'Data analytics server with OAuth authentication',
+    requiresAuth: true,
+    scopes: ['analytics:read', 'analytics:write'],
+  },
+  'dev-tools-http': {
+    name: 'Dev Tools Server (HTTP)',
+    url: 'http://localhost:3001',
+    description: 'Development tools server with OAuth authentication',
+    requiresAuth: true,
+    scopes: ['devtools:read', 'devtools:write'],
   },
 };
 
@@ -572,6 +591,185 @@ program
       const parsedArgs = JSON.parse(args);
       await mcpClient.callTool(tool, parsedArgs);
       await mcpClient.disconnect();
+    } catch (error) {
+      console.error(chalk.red('Error:'), error instanceof Error ? error.message : 'Unknown error');
+      process.exit(1);
+    }
+  });
+
+// HTTP Server Commands
+const httpClient = new MCPHTTPClient();
+
+program
+  .command('http <action> [server]')
+  .description('Interact with HTTP MCP servers (with OAuth support)')
+  .option('-u, --url <url>', 'Custom server URL')
+  .action(async (action: string, server?: string, options?: { url?: string }) => {
+    try {
+      switch (action) {
+        case 'list':
+          console.log(chalk.blue.bold('\nAvailable HTTP Servers:'));
+          const httpTableData = [
+            ['Key', 'Name', 'URL', 'Auth', 'Description'],
+            ...Object.entries(HTTP_SERVERS).map(([key, config]) => [
+              chalk.green(key),
+              config.name,
+              chalk.cyan(config.url),
+              config.requiresAuth ? chalk.yellow('Yes') : 'No',
+              config.description || 'No description',
+            ]),
+          ];
+          console.log(table(httpTableData));
+          break;
+
+        case 'connect':
+          if (!server && !options?.url) {
+            console.error(chalk.red('Please specify a server key or --url'));
+            process.exit(1);
+          }
+
+          let serverConfig: HTTPServerConfig;
+          if (options?.url) {
+            serverConfig = {
+              name: 'Custom Server',
+              url: options.url,
+              description: 'Custom HTTP server',
+            };
+          } else if (server && HTTP_SERVERS[server]) {
+            serverConfig = HTTP_SERVERS[server];
+          } else {
+            console.error(chalk.red(`Unknown server: ${server}. Use 'http list' to see available servers.`));
+            process.exit(1);
+          }
+
+          await httpClient.connect(serverConfig);
+          break;
+
+        case 'tools':
+          if (!httpClient.isConnected()) {
+            if (server || options?.url) {
+              const cfg = options?.url
+                ? { name: 'Custom', url: options.url }
+                : HTTP_SERVERS[server!];
+              if (!cfg) {
+                console.error(chalk.red(`Unknown server: ${server}`));
+                process.exit(1);
+              }
+              await httpClient.connect(cfg);
+            } else {
+              console.error(chalk.red('Not connected. Use "http connect <server>" first.'));
+              process.exit(1);
+            }
+          }
+          await httpClient.listTools();
+          break;
+
+        case 'resources':
+          if (!httpClient.isConnected()) {
+            console.error(chalk.red('Not connected. Use "http connect <server>" first.'));
+            process.exit(1);
+          }
+          await httpClient.listResources();
+          break;
+
+        case 'prompts':
+          if (!httpClient.isConnected()) {
+            console.error(chalk.red('Not connected. Use "http connect <server>" first.'));
+            process.exit(1);
+          }
+          await httpClient.listPrompts();
+          break;
+
+        case 'disconnect':
+          await httpClient.disconnect();
+          console.log(chalk.green('Disconnected from HTTP server'));
+          break;
+
+        case 'logout':
+          httpClient.getAuthManager().logout();
+          break;
+
+        default:
+          console.error(chalk.red(`Unknown action: ${action}`));
+          console.log('Available actions: list, connect, tools, resources, prompts, disconnect, logout');
+          process.exit(1);
+      }
+    } catch (error) {
+      console.error(chalk.red('Error:'), error instanceof Error ? error.message : 'Unknown error');
+      process.exit(1);
+    }
+  });
+
+program
+  .command('http-call <server> <tool> [args]')
+  .description('Call a tool on an HTTP server (with auto-authentication)')
+  .option('-u, --url <url>', 'Custom server URL')
+  .action(async (server: string, tool: string, args: string = '{}', options?: { url?: string }) => {
+    try {
+      const serverConfig = options?.url
+        ? { name: 'Custom', url: options.url }
+        : HTTP_SERVERS[server];
+
+      if (!serverConfig) {
+        console.error(chalk.red(`Unknown server: ${server}. Use 'http list' to see available servers.`));
+        process.exit(1);
+      }
+
+      await httpClient.connect(serverConfig);
+      const parsedArgs = JSON.parse(args);
+      await httpClient.callTool(tool, parsedArgs);
+      await httpClient.disconnect();
+    } catch (error) {
+      console.error(chalk.red('Error:'), error instanceof Error ? error.message : 'Unknown error');
+      process.exit(1);
+    }
+  });
+
+program
+  .command('auth <action> [serverUrl]')
+  .description('Manage OAuth authentication')
+  .action(async (action: string, serverUrl?: string) => {
+    try {
+      const authManager = httpClient.getAuthManager();
+
+      switch (action) {
+        case 'login':
+          if (!serverUrl) {
+            console.error(chalk.red('Please provide a server URL to authenticate with'));
+            process.exit(1);
+          }
+          await authManager.authenticate(serverUrl);
+          break;
+
+        case 'logout':
+          authManager.logout();
+          break;
+
+        case 'status':
+          if (authManager.isAuthenticated()) {
+            console.log(chalk.green('✓ Authenticated'));
+            console.log(chalk.gray(`  Token type: Bearer`));
+          } else {
+            console.log(chalk.yellow('✗ Not authenticated'));
+          }
+          break;
+
+        case 'check':
+          if (!serverUrl) {
+            console.error(chalk.red('Please provide a server URL to check'));
+            process.exit(1);
+          }
+          const requiresAuth = await authManager.checkAuthRequired(serverUrl);
+          console.log(requiresAuth
+            ? chalk.yellow('Server requires authentication')
+            : chalk.green('Server does not require authentication'));
+          break;
+
+        default:
+          console.error(chalk.red(`Unknown action: ${action}`));
+          console.log('Available actions: login, logout, status, check');
+          process.exit(1);
+      }
     } catch (error) {
       console.error(chalk.red('Error:'), error instanceof Error ? error.message : 'Unknown error');
       process.exit(1);

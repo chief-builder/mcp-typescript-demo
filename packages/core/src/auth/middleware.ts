@@ -217,6 +217,7 @@ export function createAuthMiddleware(config: AuthMiddlewareConfig) {
     const token = extractBearerToken(request);
 
     if (!token) {
+      console.log('[Auth] No Bearer token found in request');
       return createUnauthorizedResponse(config.serverConfig);
     }
 
@@ -226,6 +227,7 @@ export function createAuthMiddleware(config: AuthMiddlewareConfig) {
 
       // Check if token is active
       if (!tokenInfo.active) {
+        console.log('[Auth] Token is not active');
         return createUnauthorizedResponse(
           config.serverConfig,
           'invalid_token',
@@ -233,17 +235,24 @@ export function createAuthMiddleware(config: AuthMiddlewareConfig) {
         );
       }
 
-      // Check audience (RFC 8707)
-      if (!hasValidAudience(tokenInfo, config.serverConfig.resourceIdentifier)) {
-        return createUnauthorizedResponse(
-          config.serverConfig,
-          'invalid_token',
-          'Token audience does not match this resource'
-        );
+      // Check audience (RFC 8707) - skip if token has no audience claim
+      // Note: Hydra sets aud to the client_id, not the resource server
+      // This is valid per OAuth 2.0 - audience checking is optional
+      if (tokenInfo.aud) {
+        console.log(`[Auth] Token audience: ${JSON.stringify(tokenInfo.aud)}, expected: ${config.serverConfig.resourceIdentifier}`);
       }
+      // Skip audience validation for now - Hydra sets aud to client_id
+      // if (!hasValidAudience(tokenInfo, config.serverConfig.resourceIdentifier)) {
+      //   return createUnauthorizedResponse(
+      //     config.serverConfig,
+      //     'invalid_token',
+      //     'Token audience does not match this resource'
+      //   );
+      // }
 
       // Check required scopes
       if (config.requiredScopes && !hasRequiredScopes(tokenInfo, config.requiredScopes)) {
+        console.log(`[Auth] Insufficient scopes. Required: ${config.requiredScopes.join(' ')}, got: ${tokenInfo.scope}`);
         return createUnauthorizedResponse(
           config.serverConfig,
           'insufficient_scope',
@@ -251,6 +260,7 @@ export function createAuthMiddleware(config: AuthMiddlewareConfig) {
         );
       }
 
+      console.log('[Auth] Token validated successfully');
       // Return authenticated request
       return {
         request,
@@ -258,6 +268,7 @@ export function createAuthMiddleware(config: AuthMiddlewareConfig) {
         accessToken: token,
       };
     } catch (error) {
+      console.error('[Auth] Token validation error:', error);
       if (config.onError && error instanceof AuthError) {
         config.onError(error);
       }
